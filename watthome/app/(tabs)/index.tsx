@@ -1,246 +1,360 @@
-// import { Image, StyleSheet, Platform } from 'react-native';
+// import React, { useState } from "react";
+// import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image, ImageBackground } from "react-native";
 
-// import { HelloWave } from '@/components/HelloWave';
-// import ParallaxScrollView from '@/components/ParallaxScrollView';
-// import { ThemedText } from '@/components/ThemedText';
-// import { ThemedView } from '@/components/ThemedView';
+// const Login = () => {
+//   const [username, setUsername] = useState("");
+//   const [password, setPassword] = useState("");
+//   const [usernameError, setUsernameError] = useState("");
+//   const [passwordError, setPasswordError] = useState("");
+//   const [formContent, setFormContent] = useState("default");
 
-// export default function HomeScreen() {
-//   return (
-//     <ParallaxScrollView
-//       headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-//       headerImage={
-//         <Image
-//           source={require('@/assets/images/partial-react-logo.png')}
-//           style={styles.reactLogo}
-//         />
-//       }>
-//       <ThemedView style={styles.titleContainer}>
-//         <ThemedText type="title">Welcome!</ThemedText>
-//         <HelloWave />
-//       </ThemedView>
-//       <ThemedView style={styles.stepContainer}>
-//         <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-//         <ThemedText>
-//           Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-//           Press{' '}
-//           <ThemedText type="defaultSemiBold">
-//             {Platform.select({
-//               ios: 'cmd + d',
-//               android: 'cmd + m',
-//               web: 'F12'
-//             })}
-//           </ThemedText>{' '}
-//           to open developer tools.
-//         </ThemedText>
-//       </ThemedView>
-//       <ThemedView style={styles.stepContainer}>
-//         <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-//         <ThemedText>
-//           Tap the Explore tab to learn more about what's included in this starter app.
-//         </ThemedText>
-//       </ThemedView>
-//       <ThemedView style={styles.stepContainer}>
-//         <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-//         <ThemedText>
-//           When you're ready, run{' '}
-//           <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-//           <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-//           <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-//           <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-//         </ThemedText>
-//       </ThemedView>
-//     </ParallaxScrollView>
+//   const validateForm = () => {
+//     let isValid = true;
+//     const gmailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
+
+//     if (!gmailRegex.test(username)) {
+//       setUsernameError("Please enter a valid Gmail address.");
+//       isValid = false;
+//     } else {
+//       setUsernameError("");
+//     }
+
+//     if (password.length < 8) {
+//       setPasswordError("Password must be at least 8 characters long.");
+//       isValid = false;
+//     } else {
+//       setPasswordError("");
+//     }
+
+//     return isValid;
+//   };
+
+//   const handleLogin = () => {
+//     if (validateForm()) {
+//       Alert.alert("Login successful!");
+//     }
+//   };
+
+//   const defaultForm = (
+//     <View style={styles.container}>
+//       <View style={styles.logo}>
+//         <Text style={styles.logoText}>WATTHOME Logo</Text>
+//       </View>
+//       <TouchableOpacity style={styles.loginBtn} onPress={() => setFormContent("login")}>
+//         <Text style={styles.btnText}>Login</Text>
+//       </TouchableOpacity>
+//       <Text style={styles.text}>Don’t have an account?</Text>
+//       <TouchableOpacity style={styles.signupBtn} onPress={() => setFormContent("signup")}>
+//         <Text style={styles.btnText}>Signup</Text>
+//       </TouchableOpacity>
+//     </View>
 //   );
-// }
+
+//   const loginForm = (
+//     <View style={styles.container}>
+//       <TouchableOpacity style={styles.backArrowBtn} onPress={() => setFormContent("default")}>
+//         <Text style={styles.backArrowText}>←</Text>
+//       </TouchableOpacity>
+//       <View style={styles.logo}>
+//         <Text style={styles.logoText}>WATTHOME Logo</Text>
+//       </View>
+//       <TextInput
+//         style={styles.input}
+//         placeholder="Username"
+//         value={username}
+//         onChangeText={setUsername}
+//       />
+//       {usernameError ? <Text style={styles.errorMessage}>{usernameError}</Text> : null}
+//       <TextInput
+//         style={styles.input}
+//         placeholder="Password"
+//         secureTextEntry
+//         value={password}
+//         onChangeText={setPassword}
+//       />
+//       {passwordError ? <Text style={styles.errorMessage}>{passwordError}</Text> : null}
+//       <TouchableOpacity style={styles.loginBtn} onPress={handleLogin}>
+//         <Text style={styles.btnText}>Login</Text>
+//       </TouchableOpacity>
+//     </View>
+//   );
+
+//   const signupForm = (
+//     <View style={styles.container}>
+//       <TouchableOpacity style={styles.backArrowBtn} onPress={() => setFormContent("default")}>
+//         <Text style={styles.backArrowText}>←</Text>
+//       </TouchableOpacity>
+//       <View style={styles.logo}>
+//         <Text style={styles.logoText}>WATTHOME Logo</Text>
+//       </View>
+//       <TextInput style={styles.input} placeholder="Enter Passkey" />
+//       <TouchableOpacity style={styles.signupBtn} onPress={() => Alert.alert("Signup successful!")}>
+//         <Text style={styles.btnText}>Sign up</Text>
+//       </TouchableOpacity>
+//     </View>
+//   );
+
+//   return formContent === "login" ? loginForm : formContent === "signup" ? signupForm : defaultForm;
+// };
 
 // const styles = StyleSheet.create({
-//   titleContainer: {
-//     flexDirection: 'row',
-//     alignItems: 'center',
-//     gap: 8,
+//   container: {
+//     flex: 1,
+//     justifyContent: "center",
+//     alignItems: "center",
+//     padding: 20,
+//     backgroundColor: "#fff",
 //   },
-//   stepContainer: {
-//     gap: 8,
-//     marginBottom: 8,
+//   logo: {
+//     marginBottom: 20,
 //   },
-//   reactLogo: {
-//     height: 178,
-//     width: 290,
-//     bottom: 0,
-//     left: 0,
-//     position: 'absolute',
+//   logoText: {
+//     fontSize: 24,
+//     fontWeight: "bold",
+//   },
+//   loginBtn: {
+//     backgroundColor: "#007bff",
+//     padding: 10,
+//     borderRadius: 5,
+//     marginBottom: 10,
+//   },
+//   signupBtn: {
+//     backgroundColor: "#28a745",
+//     padding: 10,
+//     borderRadius: 5,
+//   },
+//   btnText: {
+//     color: "#fff",
+//     fontSize: 16,
+//   },
+//   text: {
+//     marginVertical: 10,
+//     fontSize: 16,
+//   },
+//   backArrowBtn: {
+//     alignSelf: "flex-start",
+//     padding: 10,
+//   },
+//   backArrowText: {
+//     fontSize: 24,
+//   },
+//   input: {
+//     width: "100%",
+//     padding: 10,
+//     borderWidth: 1,
+//     borderColor: "#ccc",
+//     borderRadius: 5,
+//     marginBottom: 10,
+//   },
+//   errorMessage: {
+//     color: "red",
+//     marginBottom: 10,
 //   },
 // });
 
-
-
+// export default Login;
 
 
 
 
 import React, { useState } from "react";
-import "./login.css";
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  Image,
+  ImageBackground,
+} from "react-native";
 
+const Login = () => {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [usernameError, setUsernameError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [formContent, setFormContent] = useState("default");
 
-const login: React.FC = () => {
- // Removed duplicate defaultForm function
+  const validateForm = () => {
+    let isValid = true;
+    const gmailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
 
+    if (!gmailRegex.test(username)) {
+      setUsernameError("Please enter a valid Gmail address.");
+      isValid = false;
+    } else {
+      setUsernameError("");
+    }
 
- const defaultForm = () => (
-   <div>
-     <div className="logo">
-       <img
-         src="watthomelogomain.png"
-         alt="WATTHOME Logo"
-       />
-     </div>
-     <button className="login-btn" onClick={loginCard}>
-       Login
-     </button>
-     <p className="text">Don’t have an account?</p>
-     <button className="signup-btn" onClick={signupCard}>
-       Signup
-     </button>
-   </div>
- );
+    if (password.length < 8) {
+      setPasswordError("Password must be at least 8 characters long.");
+      isValid = false;
+    } else {
+      setPasswordError("");
+    }
 
+    return isValid;
+  };
 
- const [formContent, setFormContent] = useState<JSX.Element>(defaultForm());
+  const handleLogin = () => {
+    if (validateForm()) {
+      Alert.alert("Login successful!");
+    }
+  };
 
+  const renderForm = (formType: string) => {
+    return (
+      <View style={styles.card}>
+        {formType === "default" && (
+          <>
+            <Image source={require("./logo.png")} style={styles.logo} />
+            <TouchableOpacity
+              style={styles.loginBtn}
+              onPress={() => setFormContent("login")}
+            >
+              <Text style={styles.btnText}>Login</Text>
+            </TouchableOpacity>
+            <Text style={styles.text}>Don’t have an account?</Text>
+            <TouchableOpacity
+              style={styles.signupBtn}
+              onPress={() => setFormContent("signup")}
+            >
+              <Text style={styles.btnText}>Signup</Text>
+            </TouchableOpacity>
+          </>
+        )}
 
- const loginCard = () => {
-   setFormContent(
-     <div>
-       <div className="text-left">
-         <button className="back-arrow-btn" onClick={resetCard}>
-           ←
-         </button>
-       </div>
-       <div className="logo">
-         <img
-           src="watthomelogomain.png"
-           alt="WATTHOME Logo"
-         />
-       </div>
-       <form
-         onSubmit={(e) => {
-           e.preventDefault();
-           if (validateForm()) alert("Login successful!");
-         }}
-       >
-         <input type="text" id="username" placeholder="Username" required />
-         <small id="usernameError" className="error-message">
-           Please enter a valid Email address.
-         </small>
-         <input type="password" id="password" placeholder="Password" required />
-         <small id="passwordError" className="error-message">
-           Password must be at least 8 characters long.
-         </small>
-         <p>
-           <a href="#" className="link-light">
-             Forgot Password?
-           </a>
-         </p>
-         <button type="submit">Login</button>
-         <p className="text">-------- Or, Sign up --------</p>
-         <button type="button" onClick={signupCard}>
-           Sign up
-         </button>
-       </form>
-     </div>
-   );
- };
+        {formType === "login" && (
+          <>
+            <TouchableOpacity
+              style={styles.backArrowBtn}
+              onPress={() => setFormContent("default")}
+            >
+              <Text style={styles.backArrowText}>←</Text>
+            </TouchableOpacity>
+            <Image source={require("./logo.png")} style={styles.logo} />
+            <TextInput
+              style={styles.input}
+              placeholder="Username"
+              value={username}
+              onChangeText={setUsername}
+            />
+            {usernameError ? (
+              <Text style={styles.errorMessage}>{usernameError}</Text>
+            ) : null}
+            <TextInput
+              style={styles.input}
+              placeholder="Password"
+              secureTextEntry
+              value={password}
+              onChangeText={setPassword}
+            />
+            {passwordError ? (
+              <Text style={styles.errorMessage}>{passwordError}</Text>
+            ) : null}
+            <TouchableOpacity style={styles.loginBtn} onPress={handleLogin}>
+              <Text style={styles.btnText}>Login</Text>
+            </TouchableOpacity>
+          </>
+        )}
 
+        {formType === "signup" && (
+          <>
+            <TouchableOpacity
+              style={styles.backArrowBtn}
+              onPress={() => setFormContent("default")}
+            >
+              <Text style={styles.backArrowText}>←</Text>
+            </TouchableOpacity>
+            <Image source={require("./logo.png")} style={styles.logo} />
+            <TextInput style={styles.input} placeholder="Enter Passkey" />
+            <TouchableOpacity
+              style={styles.signupBtn}
+              onPress={() => Alert.alert("Signup successful!")}
+            >
+              <Text style={styles.btnText}>Sign up</Text>
+            </TouchableOpacity>
+          </>
+        )}
+      </View>
+    );
+  };
 
- const signupCard = () => {
-   setFormContent(
-     <div>
-       <div className="text-left">
-         <button className="back-arrow-btn" onClick={resetCard}>
-           ←
-         </button>
-       </div>
-       <div className="logo">
-         <img
-           src="watthomelogomain.png"
-           alt="WATTHOME Logo"
-         />
-       </div>
-       <input type="text" placeholder="Enter Passkey" />
-       <button onClick={nextSignup}>Sign up</button>
-     </div>
-   );
- };
-
-
- const nextSignup = () => {
-   setFormContent(
-     <div>
-       <div className="text-left">
-         <button className="back-arrow-btn" onClick={signupCard}>
-           ←
-         </button>
-       </div>
-       <div className="logo">
-         <img
-           src="watthomelogomain.png"
-           alt="WATTHOME Logo"
-         />
-       </div>
-       <input type="text" placeholder="Create Username" />
-       <input type="password" placeholder="Create Password" />
-       <input type="password" placeholder="Confirm Password" />
-       <button onClick={() => alert("Signup successful!")}>Sign up</button>
-     </div>
-   );
- };
-
-
- const resetCard = () => {
-   setFormContent(defaultForm());
- };
-
-
- const validateForm = (): boolean => {
-   const usernameInput = document.getElementById("username") as HTMLInputElement;
-   const usernameError = document.getElementById("usernameError") as HTMLElement;
-   const passwordInput = document.getElementById("password") as HTMLInputElement;
-   const passwordError = document.getElementById("passwordError") as HTMLElement;
-
-
-   let isValid = true;
-   const gmailRegex = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
-
-
-   if (!gmailRegex.test(usernameInput.value)) {
-     usernameError.style.display = "block";
-     isValid = false;
-   } else {
-     usernameError.style.display = "none";
-   }
-
-
-   if (passwordInput.value.length < 8) {
-     passwordError.style.display = "block";
-     isValid = false;
-   } else {
-     passwordError.style.display = "none";
-   }
-
-
-   return isValid;
- };
-
-
-
-
- return (
-   <div className="container">
-     <div className="card">{formContent}</div>
-   </div>
- );
+  return (
+    <ImageBackground
+      source={require("./background.png")}
+      style={styles.background}
+    >
+      {renderForm(formContent)}
+    </ImageBackground>
+  );
 };
 
+const styles = StyleSheet.create({
+  background: {
+    flex: 1,
+    width: "100%",
+    height: "100%",
+    resizeMode: "cover",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  card: {
+    width: "28%",
+    height: "65%",
+    backgroundColor: "rgba(0, 19, 34, 0.89)",
+    padding: 20,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  logo: {
+    width: "95%",
+    height: "50%",
+    marginBottom: 20,
+  },
+  loginBtn: {
+    backgroundColor: "#D49C6E",
+    padding: 15,
+    borderRadius: 5,
+    width: "100%",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  signupBtn: {
+    backgroundColor: "#D49C6E",
+    padding: 15,
+    borderRadius: 5,
+    width: "100%",
+    alignItems: "center",
+  },
+  btnText: {
+    color: "#FFF",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  text: {
+    color: "#FFF",
+    marginVertical: 10,
+  },
+  backArrowBtn: {
+    alignSelf: "flex-start",
+  },
+  backArrowText: {
+    fontSize: 24,
+    color: "#FFF",
+  },
+  input: {
+    width: "100%",
+    padding: 10,
+    borderRadius: 5,
+    backgroundColor: "#FFF",
+    marginBottom: 10,
+  },
+  errorMessage: {
+    color: "red",
+    marginBottom: 10,
+  },
+});
 
-export default login;
+export default Login;
