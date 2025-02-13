@@ -1,5 +1,9 @@
 import { StyleSheet, Image, Platform } from 'react-native';
 
+
+//add screens here
+
+
 import { Collapsible } from '@/components/Collapsible';
 import { ExternalLink } from '@/components/ExternalLink';
 import ParallaxScrollView from '@/components/ParallaxScrollView';
