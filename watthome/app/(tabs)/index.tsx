@@ -1,5 +1,6 @@
 
 import React, { useState } from "react";
+
 import {
   View,
   Text,
@@ -11,6 +12,7 @@ import {
   useWindowDimensions,
 }  from "react-native";
 import { styles } from "./LoginStyles";
+import Home from "./home";
 
 const Login = () => {
   const { width } = useWindowDimensions();
@@ -23,6 +25,7 @@ const Login = () => {
   const [passwordError, setPasswordError] = useState("");
   const [passkeyError, setPasskeyError] = useState("");
   const [formContent, setFormContent] = useState("default");
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   const validateForm = () => {
     let isValid = true;
@@ -56,17 +59,8 @@ const Login = () => {
     return true;
   };
 
-  const handleLogin = () => {
-    if (validateForm()) {
-      Alert.alert("Login successful!");
-    }
-  };
 
-  const handleSignup = () => {
-    if (validatePasskey()) {
-      Alert.alert("Signup successful!");
-    }
-  };
+
 
   const renderForm = (formType: string) => {
     return (
@@ -128,6 +122,8 @@ const Login = () => {
             <TouchableOpacity style={styles.loginBtn} onPress={handleLogin}>
               <Text style={styles.btnText}>Login</Text>
             </TouchableOpacity>
+            
+
             <Text style={styles.text}> Or, Sign up </Text>
             <TouchableOpacity
               style={styles.signupBtn}
@@ -220,7 +216,7 @@ const Login = () => {
 
             <TouchableOpacity
               style={styles.signupBtn}
-              onPress={() => handleSignup()}
+              onPress={() => setIsLoggedIn(true)}
             >
               <Text style={styles.btnText}>Sign up</Text>
             </TouchableOpacity>
@@ -229,6 +225,23 @@ const Login = () => {
       </View>
     );
   };
+
+  const handleLogin = () => {
+    if (validateForm()) {
+      setIsLoggedIn(true);
+    }
+  };
+
+  const handleSignup = () => {
+    if (validateForm()) {
+      setIsLoggedIn(true);
+    }
+  };
+
+
+  if (isLoggedIn) {
+    return <Home />;
+  }
 
   return (
     <ImageBackground
@@ -239,5 +252,6 @@ const Login = () => {
     </ImageBackground>
   );
 };
+
 
 export default Login;

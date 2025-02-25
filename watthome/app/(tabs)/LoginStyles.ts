@@ -1,4 +1,5 @@
 import { StyleSheet } from "react-native";
+import { Platform } from "react-native";
 
 export const styles = StyleSheet.create({
   background: {
@@ -79,5 +80,55 @@ export const styles = StyleSheet.create({
   errorMessage: {
     color: "#FF0000",
     marginBottom: 10,
+  },
+
+
+
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f0f0f0',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+  },
+  navBar: {
+    position: 'absolute',
+    backgroundColor: "#001322",
+    width: "100%",
+    padding: 10,
+    alignItems: 'center',
+  },
+  desktopNav: {
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 60,
+    alignItems: 'center',
+    justifyContent: 'space-around',
+  },
+  mobileNav: {
+    left: 0,
+    right: 0,
+    bottom: 90,
+    height: 80,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    paddingBottom: Platform.OS === 'ios' ? 20 : 10, 
+    paddingTop: 10,
+  },
+  icon: {
+    margin: 10,
+  },
+
+  glowIcon: {
+    shadowColor: "rgba(255, 255, 255, 0.8)",  // White glow color
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 10,
+    shadowRadius: 1,  // Increase for a stronger glow
+    elevation: 1000,     // For Android shadow support
   },
 });

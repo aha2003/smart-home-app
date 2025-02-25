@@ -1,3 +1,5 @@
+import React from 'react';
+
 import { StyleSheet, Image, Platform } from 'react-native';
 
 
@@ -29,9 +31,11 @@ export default function TabTwoScreen() {
       <ThemedText>This app includes example code to help you get started.</ThemedText>
       <Collapsible title="File-based routing">
         <ThemedText>
-          This app has two screens:{' '}
+          This app has four screens:{' '}
           <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
+          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText> and{' '}
+          <ThemedText type="defaultSemiBold">app/(tabs)/home.tsx</ThemedText> 
+          <ThemedText type="defaultSemiBold">app/(tabs)/devices.tsx</ThemedText> and{' '}
         </ThemedText>
         <ThemedText>
           The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
