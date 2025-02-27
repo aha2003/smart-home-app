@@ -66,7 +66,7 @@ const NavBar = () => {
 
 const Home = () => {
   return (
-    <View style={styles.container}>
+    <View style={styles.nav_container}>
       <Text style={styles.title}>Home Page</Text>
       <NavBar />
     </View>

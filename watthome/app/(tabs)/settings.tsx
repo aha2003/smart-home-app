@@ -69,7 +69,7 @@ const NavBar = () => {
 
 const Settings = () => {
   return (
-    <View style={styles.container}>
+    <View style={styles.nav_container}>
       <Text style={styles.title}>Settings Page</Text>
       <NavBar />
     </View>

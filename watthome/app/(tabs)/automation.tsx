@@ -69,7 +69,7 @@ const NavBar = () => {
 
 const Automation = () => {
   return (
-    <View style={styles.container}>
+    <View style={styles.nav_container}>
       <Text style={styles.title}>Automation Page</Text>
       <NavBar />
     </View>
