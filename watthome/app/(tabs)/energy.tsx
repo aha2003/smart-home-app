@@ -55,7 +55,7 @@ const NavBar = () => {
       <Link href="/settings" asChild>
         <TouchableOpacity>
           <MaterialCommunityIcons 
-            name="decagram-outline" 
+            name="cog" 
             size={35} 
             color="white"
           />
