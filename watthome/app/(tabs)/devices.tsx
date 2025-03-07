@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Platform, TouchableOpacity, ScrollView, Switch,
 import { Link } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { styles } from "./LoginStyles";
-
+//comitt test 
 const NavBar = () => {
   const isDesktop = Platform.OS === 'web';
 
