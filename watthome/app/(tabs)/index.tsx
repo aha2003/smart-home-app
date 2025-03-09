@@ -1,5 +1,7 @@
 
 import React, { useState } from "react";
+import { auth } from "./firebase"; // Ensure Firebase is properly set up
+import { signInWithEmailAndPassword } from "firebase/auth";
 
 import {
   View,
