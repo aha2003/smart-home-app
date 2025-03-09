@@ -214,8 +214,8 @@ const RoomSlider: React.FC<RoomSliderProps> = ({ selectedTime }) => {
                       backgroundGradientFrom: '#001322',
                       backgroundGradientTo: '#001322',
                       decimalPlaces: 1,
-                      color: (opacity = 20) => `rgba(245, 245, 245, ${opacity})`,
-                      labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+                      color: (opacity = 100) => `rgba(245, 245, 245, ${opacity})`,
+                      labelColor: (opacity = 100) => `rgba(255, 255, 255, ${opacity})`,
                       style: {
                         borderRadius: 16,
                       },
@@ -278,8 +278,8 @@ const SolarGeneration: React.FC<SolarGenerationProps> = ({ selectedTime }) => {
           backgroundGradientFrom: '#001322',
           backgroundGradientTo: '#001322',
           decimalPlaces: 1,
-          color: (opacity = 20) => `rgba(245, 245, 245, ${opacity})`,
-          labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+          color: (opacity = 100) => `rgba(245, 245, 245, ${opacity})`,
+          labelColor: (opacity = 100) => `rgba(255, 255, 255, ${opacity})`,
           style: {
             borderRadius: 16,
           },
@@ -373,8 +373,8 @@ const DeviceUsage: React.FC<DeviceUsageProps> = ({ selectedTime }) => {
           backgroundGradientFrom: '#001322',
           backgroundGradientTo: '#001322',
           decimalPlaces: 1,
-          color: (opacity = 20) => `rgba(245, 245, 245, ${opacity})`,
-          labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+          color: (opacity = 100) => `rgba(245, 245, 245, ${opacity})`,
+          labelColor: (opacity = 100) => `rgba(255, 255, 255, ${opacity})`,
           style: {
             borderRadius: 16,
           },
