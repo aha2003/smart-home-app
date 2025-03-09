@@ -5,6 +5,7 @@ import Devices from './devices';
 import Automation from './automation';
 import Energy from './energy';
 import Settings from './settings';
+import React from 'react';
 
 const Stack = createStackNavigator();
 
