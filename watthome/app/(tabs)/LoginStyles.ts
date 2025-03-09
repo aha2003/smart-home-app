@@ -1158,5 +1158,130 @@ export const styles = StyleSheet.create({
     color: '#4a4a4a',
     marginTop: 8,
   },
+
+  //energy page stuff
+
+  energy_container: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+    paddingLeft: 55,
+  },
+  scrollView: {
+    flex: 1,
+    paddingBottom: 80,
+  },
+  timeSelector: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    padding: 15,
+    //paddingTop: 50,
+    //backgroundColor: '#1e1e1e',
+    marginBottom: 4,
+    marginTop: 40,
+    borderRadius: 20,
+  },
+  timeButton: {
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    backgroundColor: '#98999e',
+  },
+  selectedTimeButton: {
+    backgroundColor: '#001322',
+  },
+  timeButtonText: {
+    color: '#fff',
+    fontSize: 16,
+  },
+  selectedTimeButtonText: {
+    fontWeight: 'bold',
+  },
+  energy_chart_card: {
+    backgroundColor: '#001322',
+    borderRadius: 15,
+    padding: 15,
+    paddingLeft: 1,
+    margin: 10,
+    marginRight: -0.9,
+    //marginLeft: -10,
+  },
+  cardTitle: {
+    color: '#fff',
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 15,
+    paddingLeft: 13,
+    paddingBottom: 25,
+  },
+  sliderContainer: {
+    position: 'relative',
+    color: '#fff',
+  },
+  sliderWrapper: {
+    overflow: 'hidden',
+    borderRadius: 15,
+  },
+  slider: {
+    flexDirection: 'row',
+  },
+  roomCard: {
+    backgroundColor: '#001322',
+    borderRadius: 15,
+    padding: 15,
+    //marginRight: 20,
+  },
+  roomTitle: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  roomIndicators: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginBottom: 15,
+    paddingTop: -25,
+  },
+  roomIndicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#9c9c9c',
+    marginHorizontal: 4,
+  },
+  activeRoomIndicator: {
+    backgroundColor: '#81a4f7',
+    transform: [{ scale: 1.2 }],
+  },
+  chart: {
+    marginVertical: 8,
+    borderRadius: 16,
+    color: '#fff',
+  },
+  legend: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    marginTop: 10,
+    color: '#fff',
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 15,
+    marginBottom: 5,
+  },
+  legendColor: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    marginRight: 5,
+    color: '#fff',
+  },
+  legendText: {
+    color: '#fff',
+    fontSize: 12,
+  },
+
   
 });
