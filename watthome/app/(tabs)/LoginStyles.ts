@@ -1161,11 +1161,49 @@ export const styles = StyleSheet.create({
 
   //energy page stuff
 
-  energy_container: {
+  desktop_energy_container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
+    //padding: 30,
     paddingLeft: 55,
+    paddingRight: -5,
+    //alignItems: 'center',
+    //flexWrap: 'wrap',
   },
+
+  mobile_energy_container: {
+    flex: 1,
+    backgroundColor: '#f5f5f5',
+    //paddingRight: 8,
+
+  },
+
+  mobileEnergyNav: {
+    left: 0,
+    right: 0,
+    bottom: -683,
+    height: 80,
+    position: 'fixed',
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    paddingBottom: Platform.OS === 'ios' ? 20 : 10, 
+    paddingTop: 10,
+    paddingLeft: 10,
+  },
+
+  desktopEnergyNav: {
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 60,
+    paddingBottom: 60,
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    //paddingRight: 10,
+    //marginRight: 100,
+  },
+
   scrollView: {
     flex: 1,
     paddingBottom: 80,
@@ -1196,15 +1234,29 @@ export const styles = StyleSheet.create({
   selectedTimeButtonText: {
     fontWeight: 'bold',
   },
-  energy_chart_card: {
+
+  mobile_chart_style: {
     backgroundColor: '#001322',
     borderRadius: 15,
     padding: 15,
     paddingLeft: 1,
     margin: 10,
-    marginRight: -0.9,
+    //marginRight: -0.9,
+    marginRight: 10,
     //marginLeft: -10,
   },
+
+  desktop_chart_style: {
+    backgroundColor: '#001322',
+    borderRadius: 15,
+    padding: 15,
+    //paddingLeft: 1,
+    margin: 10,
+    marginRight: -0.9,
+    //marginRight: 10,
+    //marginLeft: -10,
+  },
+  
   cardTitle: {
     color: '#fff',
     fontSize: 20,
@@ -1228,7 +1280,8 @@ export const styles = StyleSheet.create({
     backgroundColor: '#001322',
     borderRadius: 15,
     padding: 15,
-    //marginRight: 20,
+    //marginRight: 200,
+    width: 30,
   },
   roomTitle: {
     color: '#fff',
@@ -1277,10 +1330,12 @@ export const styles = StyleSheet.create({
     borderRadius: 6,
     marginRight: 5,
     color: '#fff',
+    //marginBottom: 170,
   },
   legendText: {
     color: '#fff',
     fontSize: 12,
+    //marginBottom: 170,
   },
 
   

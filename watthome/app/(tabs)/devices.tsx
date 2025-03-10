@@ -77,7 +77,7 @@ const initialDeviceGroups = [
   {
     id: 3,
     name: 'Bedroom Devices',
-    devices: [5, 6]
+    devices: [5, 6, 13, 14, 15]
   },
   {
     id: 4,
@@ -86,7 +86,7 @@ const initialDeviceGroups = [
   }
 ];
 
-const initialDevices: { id: number, name: string, location: string, icon: 'lightbulb-outline' | 'thermometer' | 'cctv' | 'television' | 'robot-vacuum' | 'washing-machine' }[] = [
+const initialDevices: { id: number, name: string, location: string, icon: 'lightbulb-outline' | 'thermometer' | 'cctv' | 'television' | 'robot-vacuum' | 'washing-machine' | 'pill' }[] = [
   { id: 1, name: 'Smart Light', location: 'Living Room', icon: 'lightbulb-outline' },
   { id: 2, name: 'Thermostat', location: 'Living Room', icon: 'thermometer' },
   { id: 3, name: 'CCTV', location: 'Front Door', icon: 'cctv' },
@@ -98,6 +98,11 @@ const initialDevices: { id: number, name: string, location: string, icon: 'light
   { id: 9, name: 'Smart Light', location: 'Kitchen', icon: 'lightbulb-outline' },
   { id: 10, name: 'Thermostat', location: 'Kitchen', icon: 'thermometer' },
   { id: 11, name: 'Washing Machine', location: 'Kitchen', icon: 'washing-machine' },
+  { id: 12, name: 'Pill Dispenser', location: 'Grandpa Room', icon: 'pill' },
+  { id: 13, name: 'Thermostat', location: 'Grandma Room', icon: 'thermometer' },
+  { id: 14, name: 'Smart Light', location: 'Grandma Room', icon: 'lightbulb-outline' },
+  { id: 15, name: 'Thermostat', location: 'Kids Room', icon: 'thermometer' },
+  { id: 16, name: 'Smart Light', location: 'Kids Room', icon: 'lightbulb-outline' },
 ];
 
 const DevicesPage = () => {

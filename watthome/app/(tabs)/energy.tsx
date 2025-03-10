@@ -1,12 +1,74 @@
 import React, { useState, useRef } from 'react';
-import { View, StyleSheet, Platform, TouchableOpacity, Text, Dimensions, ScrollView } from 'react-native';
+import { View, StyleSheet, Platform, TouchableOpacity, Text, Dimensions, ScrollView, useWindowDimensions } from 'react-native';
 import { Link } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { BarChart as RNBarChart } from 'react-native-chart-kit';
+import {StackedBarChart} from 'react-native-chart-kit';
 import Animated, { useAnimatedStyle, withSpring, useSharedValue, interpolate } from 'react-native-reanimated';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { styles } from "./LoginStyles";
+
+
+const NavBar = () => {
+  const isDesktop = Platform.OS === 'web';
+
+  return (
+    <View style={[styles.navBar, isDesktop ? styles.desktopEnergyNav : styles.mobileEnergyNav]}>
+      <Link href="/" asChild>
+        <TouchableOpacity>
+          <MaterialCommunityIcons 
+            name="home-outline" 
+            size={45} 
+            color="white" 
+          />
+        </TouchableOpacity>
+      </Link>
+
+      <Link href="/devices" asChild>
+        <TouchableOpacity>
+          <MaterialCommunityIcons 
+            name="devices" 
+            size={35} 
+            color="white" 
+            
+          />
+        </TouchableOpacity>
+      </Link>
+
+      <Link href="/energy" asChild>
+        <TouchableOpacity>
+          <MaterialCommunityIcons 
+            name="lightning-bolt" 
+            size={45} 
+            color="white"
+            style={styles.glowIcon}
+          />
+        </TouchableOpacity>
+      </Link>
+
+      <Link href="/automation" asChild>
+        <TouchableOpacity>
+          <MaterialCommunityIcons 
+            name="robot-industrial" 
+            size={35} 
+            color="white"
+          />
+        </TouchableOpacity>
+      </Link>
+
+      <Link href="/settings" asChild>
+        <TouchableOpacity>
+          <MaterialCommunityIcons 
+            name="cog" 
+            size={35} 
+            color="white"
+          />
+        </TouchableOpacity>
+      </Link>
+    </View>
+  );
+};
 
 // Add type definitions
 type ChartData = {
@@ -23,49 +85,6 @@ const { width: screenWidth } = Dimensions.get('window');
 // Create a wrapper component for the BarChart to handle types properly
 const BarChart = (props: any) => {
   return <RNBarChart {...props} />;
-};
-
-const NavBar = () => {
-  const isDesktop = Platform.OS === 'web';
-
-  return (
-    <View style={[styles.navBar, isDesktop ? styles.desktopNav : styles.mobileNav]}>
-      <Link href="/" asChild>
-        <TouchableOpacity>
-          <MaterialCommunityIcons name="home-outline" size={43} color="white" />
-        </TouchableOpacity>
-      </Link>
-
-      <Link href="/devices" asChild>
-        <TouchableOpacity>
-          <MaterialCommunityIcons name="devices" size={37} color="white" />
-        </TouchableOpacity>
-      </Link>
-
-      <Link href="/energy" asChild>
-        <TouchableOpacity>
-          <MaterialCommunityIcons
-            name="lightning-bolt"
-            size={48}
-            color="white"
-            style={styles.glowIcon}
-          />
-        </TouchableOpacity>
-      </Link>
-
-      <Link href="/automation" asChild>
-        <TouchableOpacity>
-          <MaterialCommunityIcons name="robot-industrial" size={35} color="white" />
-        </TouchableOpacity>
-      </Link>
-
-      <Link href="/settings" asChild>
-        <TouchableOpacity>
-          <MaterialCommunityIcons name="cog" size={35} color="white" />
-        </TouchableOpacity>
-      </Link>
-    </View>
-  );
 };
 
 type TimeSelectorProps = {
@@ -261,8 +280,13 @@ const SolarGeneration: React.FC<SolarGenerationProps> = ({ selectedTime }) => {
 
   const chartData = getChartData();
 
+  const { width } = useWindowDimensions(); // Get screen width
+
+  const chart_style = width > 768 ? styles.desktop_chart_style : styles.mobile_chart_style; 
+
+
   return (
-    <View style={styles.energy_chart_card}>
+    <View style={chart_style}>
       <Text style={styles.cardTitle}>Solar Energy Generation</Text>
       <BarChart
         data={{
@@ -275,10 +299,11 @@ const SolarGeneration: React.FC<SolarGenerationProps> = ({ selectedTime }) => {
         yAxisSuffix=" kW"
         chartConfig={{
           backgroundColor: '#001322',
-          backgroundGradientFrom: '#001322',
-          backgroundGradientTo: '#001322',
+          // backgroundGradientFrom: '#001322',
+          // backgroundGradientTo: '#001322',
           decimalPlaces: 1,
-          color: (opacity = 100) => `rgba(245, 245, 245, ${opacity})`,
+          //color: (opacity = 100) => `rgba(245, 245, 245, ${opacity})`,
+          color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
           labelColor: (opacity = 100) => `rgba(255, 255, 255, ${opacity})`,
           style: {
             borderRadius: 16,
@@ -296,7 +321,7 @@ type DeviceUsageProps = {
 
 const DeviceUsage: React.FC<DeviceUsageProps> = ({ selectedTime }) => {
   const getChartData = () => {
-    const devices = ['TV', 'AC', 'Fridge', 'Lights'];
+    const devices = ['TV', 'Thermostat', 'Smart Lights', 'Washing Machine', 'CCTV', 'Roomba'];
     const data = {
       day: {
         labels: ['6am', '9am', '12pm', '3pm', '6pm', '9pm'],
@@ -307,6 +332,8 @@ const DeviceUsage: React.FC<DeviceUsageProps> = ({ selectedTime }) => {
             `rgba(54, 162, 235, ${opacity})`,
             `rgba(255, 206, 86, ${opacity})`,
             `rgba(75, 192, 192, ${opacity})`,
+            `rgba(153, 102, 255, ${opacity})`,
+            `rgba(255, 159, 64, ${opacity})`,
           ][index],
           legend: device,
         })),
@@ -320,6 +347,8 @@ const DeviceUsage: React.FC<DeviceUsageProps> = ({ selectedTime }) => {
             `rgba(54, 162, 235, ${opacity})`,
             `rgba(255, 206, 86, ${opacity})`,
             `rgba(75, 192, 192, ${opacity})`,
+            `rgba(153, 102, 255, ${opacity})`,
+            `rgba(255, 159, 64, ${opacity})`,
           ][index],
           legend: device,
         })),
@@ -333,6 +362,9 @@ const DeviceUsage: React.FC<DeviceUsageProps> = ({ selectedTime }) => {
             `rgba(54, 162, 235, ${opacity})`,
             `rgba(255, 206, 86, ${opacity})`,
             `rgba(75, 192, 192, ${opacity})`,
+            `rgba(153, 102, 255, ${opacity})`,
+            `rgba(255, 159, 64, ${opacity})`,
+
           ][index],
           legend: device,
         })),
@@ -346,6 +378,8 @@ const DeviceUsage: React.FC<DeviceUsageProps> = ({ selectedTime }) => {
             `rgba(54, 162, 235, ${opacity})`,
             `rgba(255, 206, 86, ${opacity})`,
             `rgba(75, 192, 192, ${opacity})`,
+            `rgba(153, 102, 255, ${opacity})`,
+            `rgba(255, 159, 64, ${opacity})`,
           ][index],
           legend: device,
         })),
@@ -356,8 +390,17 @@ const DeviceUsage: React.FC<DeviceUsageProps> = ({ selectedTime }) => {
 
   const chartData = getChartData();
 
+
+  const { width } = useWindowDimensions(); // Get screen width
+
+  const chart_style = width > 768 
+  ? styles.desktop_chart_style 
+  : [styles.mobile_chart_style, { marginBottom: 175 }];
+
+
+
   return (
-    <View style={styles.energy_chart_card}>
+    <View style={chart_style}>
       <Text style={styles.cardTitle}>Individual Device Usage</Text>
       <BarChart
         data={{
@@ -398,23 +441,31 @@ const DeviceUsage: React.FC<DeviceUsageProps> = ({ selectedTime }) => {
 const Energy = () => {
   const [selectedTime, setSelectedTime] = useState('day');
 
+  const { width } = useWindowDimensions(); // Get screen width
+
+  const containerStyle = width > 768 ? styles.desktop_energy_container : styles.mobile_energy_container; 
+
+  const chart_style = width > 768 ? styles.desktop_chart_style : styles.mobile_chart_style; 
+
+
+
+
   return (
     
-      <View style={styles.energy_container}>
-        <ScrollView style={styles.scrollView}>
-          <TimeSelector selectedTime={selectedTime} onTimeSelect={setSelectedTime} />
-          <View style={styles.energy_chart_card}>
-          <Text style={styles.cardTitle}>Electricity Consumption</Text>
-            <GestureHandlerRootView style={{ flex: 1 }}>
-              <RoomSlider selectedTime={selectedTime} />
-            </GestureHandlerRootView>
-          </View>
-          <SolarGeneration selectedTime={selectedTime} />
-          <DeviceUsage selectedTime={selectedTime} />
-        </ScrollView>
-        <NavBar />
-      </View>
-    
+    <View style={containerStyle}>
+      <NavBar />
+      <ScrollView style={styles.scrollView}>
+        <TimeSelector selectedTime={selectedTime} onTimeSelect={setSelectedTime} />
+        <View style={chart_style}>
+        <Text style={styles.cardTitle}>Electricity Consumption</Text>
+          <GestureHandlerRootView style={{ flex: 1 }}>
+            <RoomSlider selectedTime={selectedTime} />
+          </GestureHandlerRootView>
+        </View>
+        <SolarGeneration selectedTime={selectedTime} />
+        <DeviceUsage selectedTime={selectedTime} />
+      </ScrollView>
+    </View>   
   );
 };
 
