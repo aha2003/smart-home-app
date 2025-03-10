@@ -1,6 +1,6 @@
 import React, { useState } from "react";
-import { auth } from "./firebase"; // Ensure Firebase is properly set up
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { auth } from "../../backend/firebaseConfig"; // Ensure Firebase is properly set up
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
 
 import {
   View,
@@ -59,9 +59,6 @@ const Login = () => {
     setPasskeyError("");
     return true;
   };
-
-
-
 
   const renderForm = (formType: string) => {
     return (
@@ -161,11 +158,7 @@ const Login = () => {
             
             <TouchableOpacity
               style={styles.signupBtn}
-              onPress={() => {
-                if (validatePasskey()) {
-                  setFormContent("signup_more"); // Only navigate if passkey is valid
-                }
-              }}
+              onPress={handleSignup}
             >
               <Text style={styles.btnText}>Sign up</Text>
             </TouchableOpacity>
@@ -227,18 +220,27 @@ const Login = () => {
     );
   };
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (validateForm()) {
-      setIsLoggedIn(true);
+      try {
+        await signInWithEmailAndPassword(auth, username, password);
+        setIsLoggedIn(true);
+      } catch (error) {
+        Alert.alert("Login Error", error.message);
+      }
     }
   };
 
-  const handleSignup = () => {
+  const handleSignup = async () => {
     if (validateForm()) {
-      setIsLoggedIn(true);
+      try {
+        await createUserWithEmailAndPassword(auth, username, password);
+        setIsLoggedIn(true);
+      } catch (error) {
+        Alert.alert("Signup Error", error.message);
+      }
     }
   };
-
 
   if (isLoggedIn) {
     return <Home />;
@@ -253,6 +255,5 @@ const Login = () => {
     </ImageBackground>
   );
 };
-
 
 export default Login;
