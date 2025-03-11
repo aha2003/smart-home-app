@@ -184,7 +184,7 @@ export const styles = StyleSheet.create({
 
   dev_container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#f5efeb',
   },
   
   // New styles for desktop and mobile containers
@@ -400,7 +400,7 @@ export const styles = StyleSheet.create({
   addDeviceCard: {
     width: 160,
     height: 160,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#f5efeb',
     padding: 15,
     borderRadius: 20,
     alignItems: 'center',
@@ -475,7 +475,7 @@ export const styles = StyleSheet.create({
   deviceTypeOption: {
     paddingVertical: 8,
     paddingHorizontal: 15,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#f5efeb',
     borderRadius: 20,
     marginRight: 10,
     marginBottom: 10,
@@ -582,7 +582,7 @@ export const styles = StyleSheet.create({
   },
   
   addGroupButton: {
-    backgroundColor: '#fffcf2',
+    backgroundColor: '#f5efeb',
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
@@ -1163,18 +1163,22 @@ export const styles = StyleSheet.create({
 
   desktop_energy_container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    //backgroundColor: '#f5f5f5',
+    backgroundColor: '#f5efeb',
     //padding: 30,
     paddingLeft: 55,
     paddingRight: -5,
     //alignItems: 'center',
     //flexWrap: 'wrap',
+    paddingTop: -200,
   },
 
   mobile_energy_container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
     //paddingRight: 8,
+    paddingTop: -100,
+    marginBottom: 10,
 
   },
 
@@ -1211,11 +1215,11 @@ export const styles = StyleSheet.create({
   timeSelector: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    padding: 15,
+    padding: 5,
     //paddingTop: 50,
     //backgroundColor: '#1e1e1e',
     marginBottom: 4,
-    marginTop: 40,
+    marginTop: 1,
     borderRadius: 20,
   },
   timeButton: {
