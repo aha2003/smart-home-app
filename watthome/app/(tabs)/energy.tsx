@@ -228,13 +228,15 @@ const RoomSlider: React.FC<RoomSliderProps> = ({ selectedTime }) => {
                     height={220}
                     yAxisLabel=""
                     yAxisSuffix=" kW"
+                    withInnerLines = {true}
+                    showValuesOnTopOfBars = {true}
                     chartConfig={{
                       backgroundColor: '#001322',
                       backgroundGradientFrom: '#001322',
                       backgroundGradientTo: '#001322',
                       decimalPlaces: 1,
-                      color: (opacity = 100) => `rgba(245, 245, 245, ${opacity})`,
-                      labelColor: (opacity = 100) => `rgba(255, 255, 255, ${opacity})`,
+                      color: (opacity = 0) => `rgba(245, 245, 245, ${opacity})`,
+                      labelColor: (opacity = 0) => `rgba(255, 255, 255, ${opacity})`,
                       style: {
                         borderRadius: 16,
                       },
@@ -297,14 +299,16 @@ const SolarGeneration: React.FC<SolarGenerationProps> = ({ selectedTime }) => {
         height={240}
         yAxisLabel=""
         yAxisSuffix=" kW"
+        withInnerLines={true}
+        showValuesOnTopOfBars={true}
         chartConfig={{
           backgroundColor: '#001322',
-          // backgroundGradientFrom: '#001322',
-          // backgroundGradientTo: '#001322',
+          backgroundGradientFrom: '#001322',
+          backgroundGradientTo: '#001322',
           decimalPlaces: 1,
           //color: (opacity = 100) => `rgba(245, 245, 245, ${opacity})`,
-          color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
-          labelColor: (opacity = 100) => `rgba(255, 255, 255, ${opacity})`,
+          color: (opacity = 0) => `rgba(255, 255, 255, ${opacity})`,
+          labelColor: (opacity = 0) => `rgba(255, 255, 255, ${opacity})`,
           style: {
             borderRadius: 16,
           },
@@ -321,122 +325,88 @@ type DeviceUsageProps = {
 
 const DeviceUsage: React.FC<DeviceUsageProps> = ({ selectedTime }) => {
   const getChartData = () => {
-    const devices = ['TV', 'Thermostat', 'Smart Lights', 'Washing Machine', 'CCTV', 'Roomba'];
-    const data = {
+    const devices = ['TV', 'CCTV', 'Roomba', 'Washing Machine', 'Lights', 'Thermostat'];
+    const colors = [
+      'rgba(255, 99, 132, 0.6)',
+      'rgba(54, 162, 235, 0.6)',
+      'rgba(255, 206, 86, 0.6)',
+      'rgba(75, 192, 192, 0.6)',
+      'rgba(153, 102, 255, 0.6)',
+      'rgba(255, 159, 64, 0.6)',
+    ];
+
+    const timeRanges = {
       day: {
         labels: ['6am', '9am', '12pm', '3pm', '6pm', '9pm'],
-        datasets: devices.map((device, index) => ({
-          data: [0.5, 0.8, 1.2, 0.9, 1.5, 0.7].map(v => v * (index + 1)),
-          color: (opacity = 1) => [
-            `rgba(255, 99, 132, ${opacity})`,
-            `rgba(54, 162, 235, ${opacity})`,
-            `rgba(255, 206, 86, ${opacity})`,
-            `rgba(75, 192, 192, ${opacity})`,
-            `rgba(153, 102, 255, ${opacity})`,
-            `rgba(255, 159, 64, ${opacity})`,
-          ][index],
-          legend: device,
-        })),
+        baseValues: [0.5, 0.8, 1.2, 0.9, 1.5, 0.7],
       },
       week: {
         labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-        datasets: devices.map((device, index) => ({
-          data: [3.2, 3.8, 4.1, 3.9, 4.2, 3.5, 3.0].map(v => v * (index + 1)),
-          color: (opacity = 1) => [
-            `rgba(255, 99, 132, ${opacity})`,
-            `rgba(54, 162, 235, ${opacity})`,
-            `rgba(255, 206, 86, ${opacity})`,
-            `rgba(75, 192, 192, ${opacity})`,
-            `rgba(153, 102, 255, ${opacity})`,
-            `rgba(255, 159, 64, ${opacity})`,
-          ][index],
-          legend: device,
-        })),
+        baseValues: [3.2, 3.8, 4.1, 3.9, 4.2, 3.5, 3.0],
       },
       month: {
         labels: ['W1', 'W2', 'W3', 'W4'],
-        datasets: devices.map((device, index) => ({
-          data: [15.5, 16.2, 14.8, 15.9].map(v => v * (index + 1)),
-          color: (opacity = 1) => [
-            `rgba(255, 99, 132, ${opacity})`,
-            `rgba(54, 162, 235, ${opacity})`,
-            `rgba(255, 206, 86, ${opacity})`,
-            `rgba(75, 192, 192, ${opacity})`,
-            `rgba(153, 102, 255, ${opacity})`,
-            `rgba(255, 159, 64, ${opacity})`,
-
-          ][index],
-          legend: device,
-        })),
+        baseValues: [15.5, 16.2, 14.8, 15.9],
       },
       year: {
         labels: ['Jan', 'Mar', 'May', 'Jul', 'Sep', 'Nov'],
-        datasets: devices.map((device, index) => ({
-          data: [180, 210, 290, 350, 320, 185].map(v => v * (index + 0.5)),
-          color: (opacity = 1) => [
-            `rgba(255, 99, 132, ${opacity})`,
-            `rgba(54, 162, 235, ${opacity})`,
-            `rgba(255, 206, 86, ${opacity})`,
-            `rgba(75, 192, 192, ${opacity})`,
-            `rgba(153, 102, 255, ${opacity})`,
-            `rgba(255, 159, 64, ${opacity})`,
-          ][index],
-          legend: device,
-        })),
+        baseValues: [180, 210, 290, 350, 320, 185],
       },
     };
-    return data[selectedTime as keyof typeof data];
+
+    const selectedRange = timeRanges[selectedTime as keyof typeof timeRanges];
+    
+    return {
+      labels: selectedRange.labels,
+      legend: devices,
+      data: selectedRange.baseValues.map(baseValue =>
+        devices.map((_, index) => baseValue * (index + 0.5))
+      ),
+      barColors: colors,
+    };
   };
 
   const chartData = getChartData();
-
-
-  const { width } = useWindowDimensions(); // Get screen width
+  const { width } = useWindowDimensions();
+  const screenWidth = width;
 
   const chart_style = width > 768 
-  ? styles.desktop_chart_style 
-  : [styles.mobile_chart_style, { marginBottom: 175 }];
-
-
+    ? styles.desktop_chart_style 
+    : [styles.mobile_chart_style, { marginBottom: 175 }];
 
   return (
     <View style={chart_style}>
       <Text style={styles.cardTitle}>Individual Device Usage</Text>
-      <BarChart
-        data={{
-          labels: chartData.labels,
-          datasets: chartData.datasets,
-        }}
+      <StackedBarChart
+        data={chartData}
         width={screenWidth - 40}
         height={240}
-        yAxisLabel=""
-        yAxisSuffix=" kW"
         chartConfig={{
           backgroundColor: '#001322',
           backgroundGradientFrom: '#001322',
           backgroundGradientTo: '#001322',
           decimalPlaces: 1,
-          color: (opacity = 100) => `rgba(245, 245, 245, ${opacity})`,
-          labelColor: (opacity = 100) => `rgba(255, 255, 255, ${opacity})`,
+          color: (opacity = 1) => `rgba(245, 245, 245, ${opacity})`,
+          labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
           style: {
             borderRadius: 16,
           },
         }}
         style={styles.chart}
-        fromZero
-        showValuesOnTopOfBars
+        hideLegend={true}
       />
       <View style={styles.legend}>
-        {chartData.datasets.map((dataset, index) => (
+        {chartData.legend.map((label, index) => (
           <View key={index} style={styles.legendItem}>
-            <View style={[styles.legendColor, { backgroundColor: dataset.color(1) }]} />
-            <Text style={styles.legendText}>{dataset.legend}</Text>
+            <View style={[styles.legendColor, { backgroundColor: chartData.barColors[index] }]} />
+            <Text style={styles.legendText}>{label}</Text>
           </View>
         ))}
       </View>
     </View>
   );
 };
+
 
 const Energy = () => {
   const [selectedTime, setSelectedTime] = useState('day');
