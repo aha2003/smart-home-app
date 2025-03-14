@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { View, StyleSheet, Platform, TouchableOpacity, Text, Switch, ScrollView, Image, Dimensions, TextInput, Modal } from 'react-native';
 import { Link } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { styles } from "./LoginStyles";
 import { Instagram, Twitter, Camera, Mail } from 'lucide-react-native';
-
-
+import ChangePasswordModal from './ChangePasswordModal';
+import { auth } from "../../backend/firebaseConfig"; // Ensure this import is present
 
 interface FAQItem {
   question: string;
@@ -34,7 +34,6 @@ const faqs: FAQItem[] = [
     answer: "Yes, we use industry-standard encryption for all data transmission and storage. Your personal information and device data are protected with multiple layers of security, including two-factor authentication."
   }
 ];
-
 
 const NavBar = () => {
   const isDesktop = Platform.OS === 'web';
@@ -112,15 +111,18 @@ const Settings = () => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [expandedFAQ, setExpandedFAQ] = useState<number | null>(null);
-  const handlePasswordChange = () => {
-    // Implement password change logic here
-    if (newPassword === confirmPassword) {
-      // Update password
-      setPasswordModalVisible(false);
-      setOldPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
-    }
+
+  const openPasswordModal = () => {
+    setPasswordModalVisible(true);
+  };
+
+  const closePasswordModal = () => {
+    setPasswordModalVisible(false);
+  };
+
+  const handlePasswordChangeSuccess = () => {
+    closePasswordModal();
+    // Reset any necessary state here if needed
   };
 
   // Update dimensions on window resize (web only)
@@ -157,7 +159,7 @@ const Settings = () => {
                 </View>
                 <View style={styles.profileInfo}>
                   <Text style={styles.profileName}>Jessica Novern</Text>
-                  <Text style={styles.profileUsername}>jess@1420</Text>
+                  <Text style={styles.profileUsername}>{auth.currentUser ? auth.currentUser.email : 'Not logged in'}</Text>
                   <Text style={styles.profileBio}>Its jess here</Text>
                   <TouchableOpacity style={styles.editProfileButton}>
                     <Text style={styles.editProfileText}>Edit profile</Text>
@@ -176,7 +178,7 @@ const Settings = () => {
                 <View style={styles.formGroup}>
                   <Text style={styles.label}>Email</Text>
                   <View style={styles.inputContainer}>
-                    <Text style={styles.inputValue}>jess.1420@gmail.com</Text>
+                    <Text style={styles.inputValue}>{auth.currentUser ? auth.currentUser.email : 'Not logged in'}</Text>
                   </View>
                 </View>
                 <View style={styles.formGroup}>
@@ -214,7 +216,7 @@ const Settings = () => {
             <View style={styles.formGroup}>
               <TouchableOpacity 
                 style={styles.actionButton}
-                onPress={() => setPasswordModalVisible(true)}
+                onPress={openPasswordModal}
               >
                 <Text style={styles.actionButtonText}>Change password</Text>
               </TouchableOpacity>
@@ -234,7 +236,7 @@ const Settings = () => {
 
             <View style={styles.formGroup}>
               <Text style={styles.label}>Recovery Email</Text>
-              <Text style={styles.input}>mateo.16@gmail.com</Text>
+              <Text style={styles.input}>{auth.currentUser ? auth.currentUser.email : 'Not logged in'}</Text>
             </View>
     
             <View style={styles.formGroup}>
@@ -258,57 +260,11 @@ const Settings = () => {
             </View>
           </View>
     
-          <Modal
+          <ChangePasswordModal
             visible={isPasswordModalVisible}
-            transparent={true}
-            animationType="slide"
-          >
-            <View style={styles.modalContainer}>
-              <View style={styles.modalContent}>
-                <Text style={styles.modalTitle}>Change Password</Text>
-                
-                <TextInput
-                  style={styles.modalInput}
-                  placeholder="Current Password"
-                  secureTextEntry
-                  value={oldPassword}
-                  onChangeText={setOldPassword}
-                />
-                
-                <TextInput
-                  style={styles.modalInput}
-                  placeholder="New Password"
-                  secureTextEntry
-                  value={newPassword}
-                  onChangeText={setNewPassword}
-                />
-    
-                <TextInput
-                  style={styles.modalInput}
-                  placeholder="Confirm New Password"
-                  secureTextEntry
-                  value={confirmPassword}
-                  onChangeText={setConfirmPassword}
-                />
-    
-                <View style={styles.modalButtons}>
-                  <TouchableOpacity 
-                    style={styles.modalButton}
-                    onPress={() => setPasswordModalVisible(false)}
-                  >
-                    <Text style={styles.modalButtonText}>Cancel</Text>
-                  </TouchableOpacity>
-                  
-                  <TouchableOpacity 
-                    style={[styles.modalButton, styles.modalButtonPrimary]}
-                    onPress={handlePasswordChange}
-                  >
-                    <Text style={styles.modalButtonTextPrimary}>Update</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          </Modal>
+            onClose={closePasswordModal}
+            onSuccess={handlePasswordChangeSuccess}
+          />
         </View>
       );
       

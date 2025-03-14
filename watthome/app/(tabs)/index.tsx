@@ -226,7 +226,8 @@ const Login = () => {
         await signInWithEmailAndPassword(auth, username, password);
         setIsLoggedIn(true);
       } catch (error) {
-        Alert.alert("Login Error", error.message);
+        const e = error as Error;
+        Alert.alert("Login Error", e.message);
       }
     }
   };
@@ -237,7 +238,8 @@ const Login = () => {
         await createUserWithEmailAndPassword(auth, username, password);
         setIsLoggedIn(true);
       } catch (error) {
-        Alert.alert("Signup Error", error.message);
+        const e = error as Error;
+        Alert.alert("Signup Error", e.message);
       }
     }
   };
