@@ -10,7 +10,7 @@ const NavBar = () => {
 
   return (
     <View style={[styles.navBar, isDesktop ? styles.desktopNav : styles.mobileNav]}>
-      <Link href="/" asChild>
+      <Link href="/home" asChild>
         <TouchableOpacity>
           <MaterialCommunityIcons 
             name="home-outline" 

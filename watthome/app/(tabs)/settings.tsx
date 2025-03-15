@@ -22,7 +22,7 @@ const faqs: FAQItem[] = [
     answer: "Yes! In the Automation tab, you can create custom routines based on time, device status, or location. For example, you can set lights to turn on at sunset or adjust the thermostat when you leave home."
   },
   {
-    question: "Random question?",
+    question: "How do i add a new user?",
     answer: "Go to Device Settings > Share Access and enter the email address of the family member you want to share with. They'll receive an invitation to join your home and can control shared devices."
   },
   {
@@ -39,8 +39,8 @@ const NavBar = () => {
   const isDesktop = Platform.OS === 'web';
 
   return (
-    <View style={[styles.navBar, isDesktop ? styles.desktopNav : styles.mobileSettingsNav]}>
-      <Link href="/" asChild>
+    <View style={[styles.navBar, isDesktop ? styles.desktopNav : styles.mobileNav]}>
+      <Link href="/home" asChild>
         <TouchableOpacity>
           <MaterialCommunityIcons 
             name="home-outline" 
@@ -682,8 +682,9 @@ const Settings = () => {
       styles.dev_container, 
       isDesktop ? styles.desktopContainer : styles.mobileContainerProfile
     ]}>
-      <NavBar />
+      
       {isDesktop ? <DesktopLayout /> : <MobileLayout />}
+      <NavBar />
     </View>
   );
 };
