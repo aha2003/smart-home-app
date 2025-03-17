@@ -435,7 +435,7 @@ export const styles = StyleSheet.create({
   addDeviceForm: {
     width: '90%',
     maxWidth: 400,
-    backgroundColor: 'white',
+    backgroundColor: '#001322',
     borderRadius: 20,
     padding: 20,
     shadowColor: '#000',
@@ -450,18 +450,19 @@ export const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 20,
     textAlign: 'center',
-    color: '#001322',
+    color: '#ffffff',
   },
   
   formLabel: {
     fontSize: 16,
     fontWeight: 'bold',
     marginBottom: 5,
-    color: '#001322',
+    color: '#ffffff',
   },
   
   formInput: {
     width: '100%',
+    color: 'white',
     padding: 12,
     borderWidth: 1,
     borderColor: '#ccc',
@@ -477,23 +478,25 @@ export const styles = StyleSheet.create({
   deviceTypeOption: {
     paddingVertical: 8,
     paddingHorizontal: 15,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#001322',
     borderRadius: 20,
     marginRight: 10,
     marginBottom: 10,
+    borderWidth: 2,
+    borderColor: '#ffffff',
   },
   
   selectedDeviceType: {
-    backgroundColor: '#001322',
+    backgroundColor: '#f5f5f5',
   },
   
   deviceTypeText: {
-    color: '#001322',
+    color: '#ffffff',
     fontWeight: '500',
   },
   
   selectedDeviceTypeText: {
-    color: 'white',
+    color: '#001322',
   },
   
   formButtons: {
@@ -525,6 +528,8 @@ export const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 10,
     alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#ffffff',
   },
   
   addButtonText: {
