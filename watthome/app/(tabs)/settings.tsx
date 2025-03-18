@@ -1,11 +1,12 @@
 import React, { useState, useCallback } from 'react';
 import { View, StyleSheet, Platform, TouchableOpacity, Text, Switch, ScrollView, Image, Dimensions, TextInput, Modal } from 'react-native';
-import { Link } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { styles } from "./LoginStyles";
 import { Instagram, Twitter, Camera, Mail } from 'lucide-react-native';
 import ChangePasswordModal from './ChangePasswordModal';
 import { auth } from "../../backend/firebaseConfig"; // Ensure this import is present
+import { signOut } from "firebase/auth"; // Import signOut function
 
 interface FAQItem {
   question: string;
@@ -95,6 +96,7 @@ const NavBar = () => {
 };
 
 const Settings = () => {
+  const router = useRouter(); // Initialize the router
   const [windowDimensions, setWindowDimensions] = useState(Dimensions.get('window'));
   const isDesktop = Platform.OS === 'web' && windowDimensions.width > 768;
   const [activeTab, setActiveTab] = useState('profile');
@@ -139,6 +141,18 @@ const Settings = () => {
 
   const toggleSidebar = () => {
     setSidebarVisible(!sidebarVisible);
+  };
+
+  const handleLogout = async () => {
+    try {
+      console.log("Attempting to log out..."); // Debug log
+      await signOut(auth); // Sign out the user
+      console.log("User logged out successfully."); // Debug log
+      router.push('/'); // Navigate to the index (home) screen
+    } catch (error) {
+      console.error("Logout error:", error);
+      // Optionally, show an alert or message to the user
+    }
   };
 
   const renderTabContent = () => {
@@ -540,7 +554,7 @@ const Settings = () => {
       
       <View style={styles.divider} />
       
-      <TouchableOpacity style={styles.logoutButton}>
+      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
         <MaterialCommunityIcons name="logout" size={20} color="#FF3B30" />
         <Text style={styles.logoutText}>Log out</Text>
       </TouchableOpacity>
@@ -642,7 +656,7 @@ const Settings = () => {
           
           <View style={styles.divider} />
           
-          <TouchableOpacity style={styles.logoutButton}>
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
             <MaterialCommunityIcons name="logout" size={20} color="#FF3B30" />
             <Text style={styles.logoutText}>Log out</Text>
           </TouchableOpacity>

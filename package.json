@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "@react-native-firebase/firestore": "^21.12.0"
+  }
+}
