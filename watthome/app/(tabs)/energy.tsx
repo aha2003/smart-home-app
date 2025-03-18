@@ -3,19 +3,16 @@ import { View, StyleSheet, Platform, TouchableOpacity, Text, Dimensions, ScrollV
 import { Link } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { BarChart as RNBarChart } from 'react-native-chart-kit';
-import {StackedBarChart} from 'react-native-chart-kit';
-import Animated, { useAnimatedStyle, withSpring, useSharedValue, interpolate } from 'react-native-reanimated';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import { StackedBarChart } from 'react-native-chart-kit';
 import { styles } from "./LoginStyles";
 
-
+// Keep NavBar component unchanged
 const NavBar = () => {
   const isDesktop = Platform.OS === 'web';
 
   return (
-    <View style={[styles.navBar, isDesktop ? styles.desktopEnergyNav : styles.mobileEnergyNav]}>
-      <Link href="/" asChild>
+    <View style={[styles.navBar, isDesktop ? styles.desktopEnergyNav : styles.mobileNav]}>
+      <Link href="/home" asChild>
         <TouchableOpacity>
           <MaterialCommunityIcons 
             name="home-outline" 
@@ -130,14 +127,16 @@ const TimeSelector: React.FC<TimeSelectorProps> = ({ selectedTime, onTimeSelect 
   );
 };
 
+// Replacing the GestureHandler-based RoomSlider with a standard ScrollView implementation
 type RoomSliderProps = {
   selectedTime: string;
 };
 
 const RoomSlider: React.FC<RoomSliderProps> = ({ selectedTime }) => {
   const rooms = ['Living Room', 'Kitchen', 'Bedroom', 'Kids Room'];
-  const [activeIndex, setActiveIndex] = useState(0);
-  const translateX = useSharedValue(0);
+  const [activeRoomIndex, setActiveRoomIndex] = useState(0);
+  const roomsScrollRef = useRef<ScrollView>(null);
+  
   const itemWidth = screenWidth - 40;
 
   const getChartData = (room: string) => {
@@ -162,97 +161,126 @@ const RoomSlider: React.FC<RoomSliderProps> = ({ selectedTime }) => {
     return data[selectedTime as keyof typeof data];
   };
 
-  const gesture = Gesture.Pan()
-    .onBegin(() => {
-      translateX.value = activeIndex * -itemWidth;
-    })
-    .onUpdate((e) => {
-      translateX.value = activeIndex * -itemWidth + e.translationX;
-    })
-    .onEnd((e) => {
-      const velocity = e.velocityX;
-      const shouldSwipe = Math.abs(e.translationX) > itemWidth * 0.3 || Math.abs(velocity) > 400;
-      
-      let newIndex = activeIndex;
-      if (shouldSwipe) {
-        if (e.translationX > 0) {
-          newIndex = Math.max(0, activeIndex - 1);
-        } else {
-          newIndex = Math.min(rooms.length - 1, activeIndex + 1);
-        }
-      }
-      
-      translateX.value = withSpring(newIndex * -itemWidth, {
-        velocity: velocity,
-        damping: 20,
+  // Function to scroll to a specific room
+  const scrollToRoom = (index: number) => {
+    if (roomsScrollRef.current) {
+      roomsScrollRef.current.scrollTo({
+        x: index * itemWidth,
+        animated: true
       });
-      setActiveIndex(newIndex);
-    });
+    }
+    setActiveRoomIndex(index);
+  };
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: translateX.value }],
-  }));
+  // Handle scroll events to update active room indicator
+  const handleRoomScroll = (event: any) => {
+    const scrollPosition = event.nativeEvent.contentOffset.x;
+    const index = Math.round(scrollPosition / itemWidth);
+    if (index !== activeRoomIndex && index >= 0 && index < rooms.length) {
+      setActiveRoomIndex(index);
+    }
+  };
 
-  return (
-    <View style={styles.sliderContainer}>
-      <View style={styles.roomIndicators}>
+  // Room indicators component
+  const renderRoomIndicators = () => {
+    return (
+      <View style={localStyles.indicatorContainer}>
         {rooms.map((_, index) => (
           <TouchableOpacity
             key={index}
-            onPress={() => {
-              setActiveIndex(index);
-              translateX.value = withSpring(index * -itemWidth);
-            }}
-          >
-            <View style={[
-              styles.roomIndicator,
-              activeIndex === index && styles.activeRoomIndicator
-            ]} />
-          </TouchableOpacity>
+            onPress={() => scrollToRoom(index)}
+            style={[
+              localStyles.indicator,
+              activeRoomIndex === index ? localStyles.activeIndicator : {}
+            ]}
+          />
         ))}
       </View>
-      <GestureDetector gesture={gesture}>
-        <View style={styles.sliderWrapper}>
-          <Animated.View style={[styles.slider, animatedStyle]}>
-            {rooms.map((room, index) => {
-              const chartData = getChartData(room);
-              return (
-                <View key={index} style={[styles.roomCard, { width: itemWidth }]}>
-                  <Text style={styles.roomTitle}>{room}</Text>
-                  <BarChart
-                    data={{
-                      labels: chartData.labels,
-                      datasets: [{ data: chartData.data }],
-                    }}
-                    width={itemWidth - 20}
-                    height={220}
-                    yAxisLabel=""
-                    yAxisSuffix=" kW"
-                    withInnerLines = {true}
-                    showValuesOnTopOfBars = {true}
-                    chartConfig={{
-                      backgroundColor: '#001322',
-                      backgroundGradientFrom: '#001322',
-                      backgroundGradientTo: '#001322',
-                      decimalPlaces: 1,
-                      color: (opacity = 0) => `rgba(245, 245, 245, ${opacity})`,
-                      labelColor: (opacity = 0) => `rgba(255, 255, 255, ${opacity})`,
-                      style: {
-                        borderRadius: 16,
-                      },
-                    }}
-                    style={styles.chart}
-                  />
-                </View>
-              );
-            })}
-          </Animated.View>
+    );
+  };
+
+  return (
+    <View style={localStyles.sliderContainer}>
+      <View style={localStyles.roomsHeader}>
+        <View style={localStyles.roomNav}>
+          <TouchableOpacity 
+            style={localStyles.navButton}
+            onPress={() => scrollToRoom(Math.max(0, activeRoomIndex - 1))}
+            disabled={activeRoomIndex === 0}
+          >
+            <MaterialCommunityIcons
+              name="chevron-left"
+              size={28}
+              color={activeRoomIndex === 0 ? "#555" : "#FFFFFF"}
+            />
+          </TouchableOpacity>
+          
+          {renderRoomIndicators()}
+          
+          <TouchableOpacity
+            style={localStyles.navButton}
+            onPress={() => scrollToRoom(Math.min(rooms.length - 1, activeRoomIndex + 1))}
+            disabled={activeRoomIndex === rooms.length - 1}
+          >
+            <MaterialCommunityIcons
+              name="chevron-right"
+              size={28}
+              color={activeRoomIndex === rooms.length - 1 ? "#555" : "#FFFFFF"}
+            />
+          </TouchableOpacity>
         </View>
-      </GestureDetector>
+      </View>
+      
+      <ScrollView 
+        ref={roomsScrollRef}
+        horizontal 
+        showsHorizontalScrollIndicator={false}
+        onScroll={handleRoomScroll}
+        scrollEventThrottle={16}
+        pagingEnabled={false}
+        snapToInterval={itemWidth}
+        decelerationRate="fast"
+        snapToAlignment="center"
+        contentContainerStyle={localStyles.roomsScrollContainer}
+      >
+        {rooms.map((room, index) => {
+          const chartData = getChartData(room);
+          return (
+            <View key={index} style={[styles.roomCard, { width: itemWidth }]}>
+              <Text style={styles.roomTitle}>{room}</Text>
+              <BarChart
+                data={{
+                  labels: chartData.labels,
+                  datasets: [{ data: chartData.data }],
+                }}
+                width={itemWidth - 20}
+                height={220}
+                yAxisLabel=""
+                yAxisSuffix=" kW"
+                withInnerLines={true}
+                showValuesOnTopOfBars={true}
+                chartConfig={{
+                  backgroundColor: '#001322',
+                  backgroundGradientFrom: '#001322',
+                  backgroundGradientTo: '#001322',
+                  decimalPlaces: 1,
+                  color: (opacity = 1) => `rgba(245, 245, 245, ${opacity})`,
+                  labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+                  style: {
+                    borderRadius: 16,
+                  },
+                }}
+                style={styles.chart}
+              />
+            </View>
+          );
+        })}
+      </ScrollView>
     </View>
   );
 };
 
+// Keep SolarGeneration and DeviceUsage components unchanged
 type SolarGenerationProps = {
   selectedTime: string;
 };
@@ -306,9 +334,8 @@ const SolarGeneration: React.FC<SolarGenerationProps> = ({ selectedTime }) => {
           backgroundGradientFrom: '#001322',
           backgroundGradientTo: '#001322',
           decimalPlaces: 1,
-          //color: (opacity = 100) => `rgba(245, 245, 245, ${opacity})`,
-          color: (opacity = 0) => `rgba(255, 255, 255, ${opacity})`,
-          labelColor: (opacity = 0) => `rgba(255, 255, 255, ${opacity})`,
+          color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+          labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
           style: {
             borderRadius: 16,
           },
@@ -407,37 +434,71 @@ const DeviceUsage: React.FC<DeviceUsageProps> = ({ selectedTime }) => {
   );
 };
 
-
+// Main Energy component remains mostly unchanged
 const Energy = () => {
   const [selectedTime, setSelectedTime] = useState('day');
 
-  const { width } = useWindowDimensions(); // Get screen width
-
+  const { width } = useWindowDimensions();
   const containerStyle = width > 768 ? styles.desktop_energy_container : styles.mobile_energy_container; 
-
   const chart_style = width > 768 ? styles.desktop_chart_style : styles.mobile_chart_style; 
 
-
-
-
   return (
-    
     <View style={containerStyle}>
-      <NavBar />
+      
       <ScrollView style={styles.scrollView}>
         <TimeSelector selectedTime={selectedTime} onTimeSelect={setSelectedTime} />
         <View style={chart_style}>
-        <Text style={styles.cardTitle}>Electricity Consumption</Text>
-          <GestureHandlerRootView style={{ flex: 1 }}>
-            <RoomSlider selectedTime={selectedTime} />
-          </GestureHandlerRootView>
+          <Text style={styles.cardTitle}>Electricity Consumption</Text>
+          <RoomSlider selectedTime={selectedTime} />
         </View>
         <SolarGeneration selectedTime={selectedTime} />
         <DeviceUsage selectedTime={selectedTime} />
       </ScrollView>
+      <NavBar />
     </View>   
   );
 };
 
+// Add local styles
+const localStyles = StyleSheet.create({
+  sliderContainer: {
+    marginVertical: 10,
+  },
+  roomsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  roomNav: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  navButton: {
+    padding: 5,
+  },
+  indicatorContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  indicator: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#555',
+    marginHorizontal: 4,
+  },
+  activeIndicator: {
+    backgroundColor: '#f4efeb', // Match your app's accent color
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+  },
+  roomsScrollContainer: {
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+  },
+});
 
 export default Energy;

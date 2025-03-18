@@ -10,11 +10,13 @@ export const styles = StyleSheet.create({
     resizeMode: "cover",
     justifyContent: "center",
     alignItems: "center",
+    borderRadius: 50,
   },
   card: {
     backgroundColor: "rgba(0, 19, 34, 0.89)",
     padding: 20,
     borderRadius: 10,
+    paddingBottom: 70,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -171,7 +173,7 @@ export const styles = StyleSheet.create({
   mobileSettingsNav: {
     left: 0,
     right: 0,
-    bottom: -683,
+    bottom: 0,
     height: 80,
     position: 'fixed',
     flexDirection: 'row',
@@ -184,7 +186,7 @@ export const styles = StyleSheet.create({
 
   dev_container: {
     flex: 1,
-    backgroundColor: '#f5efeb',
+    backgroundColor: '#f5f5f5',
   },
   
   // New styles for desktop and mobile containers
@@ -207,7 +209,7 @@ export const styles = StyleSheet.create({
 
   
   mobileContainer: {
-    paddingBottom: 90, // Space for the bottom nav
+    paddingBottom: -20, // Space for the bottom nav
   },
   
 
@@ -221,7 +223,7 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 50,
+    marginTop: 5,
     marginBottom: 10,
     paddingHorizontal: 10,
   },
@@ -263,7 +265,7 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-around',
-    paddingBottom: 20,
+    //paddingBottom: 20,
   },
   
   deviceCard: {
@@ -400,7 +402,7 @@ export const styles = StyleSheet.create({
   addDeviceCard: {
     width: 160,
     height: 160,
-    backgroundColor: '#f5efeb',
+    backgroundColor: '#f5f5f5',
     padding: 15,
     borderRadius: 20,
     alignItems: 'center',
@@ -433,7 +435,7 @@ export const styles = StyleSheet.create({
   addDeviceForm: {
     width: '90%',
     maxWidth: 400,
-    backgroundColor: 'white',
+    backgroundColor: '#001322',
     borderRadius: 20,
     padding: 20,
     shadowColor: '#000',
@@ -448,18 +450,19 @@ export const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 20,
     textAlign: 'center',
-    color: '#001322',
+    color: '#ffffff',
   },
   
   formLabel: {
     fontSize: 16,
     fontWeight: 'bold',
     marginBottom: 5,
-    color: '#001322',
+    color: '#ffffff',
   },
   
   formInput: {
     width: '100%',
+    color: 'white',
     padding: 12,
     borderWidth: 1,
     borderColor: '#ccc',
@@ -475,23 +478,25 @@ export const styles = StyleSheet.create({
   deviceTypeOption: {
     paddingVertical: 8,
     paddingHorizontal: 15,
-    backgroundColor: '#f5efeb',
+    backgroundColor: '#001322',
     borderRadius: 20,
     marginRight: 10,
     marginBottom: 10,
+    borderWidth: 2,
+    borderColor: '#ffffff',
   },
   
   selectedDeviceType: {
-    backgroundColor: '#001322',
+    backgroundColor: '#f5f5f5',
   },
   
   deviceTypeText: {
-    color: '#001322',
+    color: '#ffffff',
     fontWeight: '500',
   },
   
   selectedDeviceTypeText: {
-    color: 'white',
+    color: '#001322',
   },
   
   formButtons: {
@@ -523,6 +528,8 @@ export const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 10,
     alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#ffffff',
   },
   
   addButtonText: {
@@ -582,7 +589,7 @@ export const styles = StyleSheet.create({
   },
   
   addGroupButton: {
-    backgroundColor: '#f5efeb',
+    backgroundColor: '#f5f5f5',
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
@@ -934,7 +941,7 @@ export const styles = StyleSheet.create({
   mobileContainerProfile: {
     flex: 1,
     backgroundColor: '#f6f8fa',
-    paddingBottom: 90,
+    //paddingBottom: 9,
   },
   mobileHeader: {
     flexDirection: 'row',
@@ -952,7 +959,7 @@ export const styles = StyleSheet.create({
   },
   mobileContent: {
     flex: 1,
-    paddingBottom: 80, // Space for the navbar
+    paddingBottom: 20, // Space for the navbar
   },
   mobileSidebar: {
     position: 'absolute',
@@ -1164,7 +1171,7 @@ export const styles = StyleSheet.create({
   desktop_energy_container: {
     flex: 1,
     //backgroundColor: '#f5f5f5',
-    backgroundColor: '#f5efeb',
+    backgroundColor: '#f5f5f5',
     //padding: 30,
     paddingLeft: 55,
     paddingRight: -5,
@@ -1177,15 +1184,17 @@ export const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
     //paddingRight: 8,
-    paddingTop: -100,
-    marginBottom: 10,
+    // paddingTop: -50,
+    //marginBottom: 10,
 
   },
 
   mobileEnergyNav: {
     left: 0,
     right: 0,
-    bottom: -683,
+    //bottom: -683,
+    //bottom: -600,
+    bottom: 0,
     height: 80,
     position: 'fixed',
     flexDirection: 'row',
@@ -1215,10 +1224,10 @@ export const styles = StyleSheet.create({
   timeSelector: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    padding: 5,
+    padding: 10,
     //paddingTop: 50,
     //backgroundColor: '#1e1e1e',
-    marginBottom: 4,
+    marginBottom: 5,
     marginTop: 1,
     borderRadius: 20,
   },
@@ -1283,9 +1292,8 @@ export const styles = StyleSheet.create({
   roomCard: {
     backgroundColor: '#001322',
     borderRadius: 15,
-    padding: 15,
-    //marginRight: 200,
-    width: 30,
+    padding: 3,
+
   },
   roomTitle: {
     color: '#fff',
@@ -1314,6 +1322,7 @@ export const styles = StyleSheet.create({
     marginVertical: 8,
     borderRadius: 16,
     color: '#fff',
+
   },
   legend: {
     flexDirection: 'row',
@@ -1342,5 +1351,68 @@ export const styles = StyleSheet.create({
     //marginBottom: 170,
   },
 
+
+  //Home page stuff
+  Home_title: {
+    fontSize: 34,
+    fontWeight: 'bold',
+    color: '#000000',
+    marginTop: 10,
+    paddingLeft: 5,
+    textAlign: 'left',
+    marginBottom: 15,
+
+  },
+  subtitle: {
+    fontSize: 31,
+    fontWeight: 'bold',
+    color: '#000000',
+    opacity: 0.8,
+    marginTop: 10,
+    marginBottom: 15,
+    //paddingLeft: 20,
+  },
+  usersSection: {
+    marginTop: 30,
+    marginBottom: 20,
+  },
+  usersTitle: {
+    fontSize: 18,
+    color: '#ffffff',
+    opacity: 0.9,
+    marginBottom: 10,
+    marginTop: 10,
+    marginLeft: 10,
+    fontWeight: '600',
+  },
+  scrollContainer: {
+    height: 100, // Fixed height
+    width: '100%',
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 16,
+    padding: 10,
+  },
+  scrollContentContainer: {
+    paddingRight: 10,
+  },
+  profileImageContainer: {
+    marginRight: 12,
+    borderRadius: 20,
+    overflow: 'hidden',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 0.2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
+    backgroundColor: '#2d2d2d',
+  },
+  profilePicture: {
+    width: 60,
+    height: 60,
+    borderRadius: 20,
+  },
   
 });
