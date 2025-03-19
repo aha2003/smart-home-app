@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, FlatList, Platform, Switch, TextInput, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, FlatList, Platform, Switch, TextInput, ScrollView ,KeyboardAvoidingView } from 'react-native';
 import { Sun, Moon, Clock, Power, Plus, Thermometer, CreditCard as Edit, X, Check } from 'lucide-react-native';
 import { Link } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { styles } from "./LoginStyles";
+import Chatbot from './chatbot';
 
 
 const NavBar = () => {
@@ -458,9 +459,16 @@ export default function AutomationsScreen() {
       </View>
     </Modal>
   );
+  const isDesktop = Platform.OS === 'web';
 
   return (
-    <View style={local_styles.container}>
+    <View style={[local_styles.container, isDesktop ? local_styles.desktop_container : local_styles.mobile_container]}>
+            <KeyboardAvoidingView
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+              keyboardVerticalOffset={Platform.OS === 'ios' ? 70 : 0}
+              style={styles.keyboardAvoidingContainer}
+            >
+
       <View style={local_styles.header}>
         <Text style={local_styles.headerText}>Automations</Text>
         <TouchableOpacity
@@ -491,7 +499,9 @@ export default function AutomationsScreen() {
           onChange={handleTimeChange}
         />
       )}
+      <Chatbot />
       <NavBar />
+      </KeyboardAvoidingView>
     </View>
   );
 }
@@ -499,17 +509,32 @@ export default function AutomationsScreen() {
 const local_styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
-    paddingTop: Platform.OS === 'ios' ? 60 : 40,
-    paddingLeft: Platform.OS === 'web' ? 70 : 0,
-    //paddingBottom: Platform.OS === 'web' ? 0 : 80,
+    backgroundColor: '#ffffff',
+    // paddingTop: Platform.OS === 'ios' ? 10 : 100,
+    // paddingLeft: Platform.OS === 'web' ? 70 : 0,
+    // //paddingBottom: Platform.OS === 'web' ? 0 : 80,
+    // marginLeft: 55,
+    // marginTop: 20,
 
+  },
+  desktop_container: {
+    flex: 1,
+    
+    marginLeft: 55,
+    marginTop: 20,
+    paddingLeft: Platform.OS === 'web' ? 70 : 0,
+  },
+  mobile_container: {
+    flex: 1,
+    //padding: 1,
+    //paddingBottom: 0,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
+    paddingTop: 20,
     marginBottom: 20,
   },
   headerText: {

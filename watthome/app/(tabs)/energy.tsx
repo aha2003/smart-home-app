@@ -1,10 +1,11 @@
 import React, { useState, useRef } from 'react';
-import { View, StyleSheet, Platform, TouchableOpacity, Text, Dimensions, ScrollView, useWindowDimensions } from 'react-native';
+import { View, StyleSheet, Platform, TouchableOpacity, Text, Dimensions, ScrollView, useWindowDimensions, KeyboardAvoidingView } from 'react-native';
 import { Link } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { BarChart as RNBarChart } from 'react-native-chart-kit';
 import { StackedBarChart } from 'react-native-chart-kit';
 import { styles } from "./LoginStyles";
+import Chatbot from './chatbot';
 
 // Keep NavBar component unchanged
 const NavBar = () => {
@@ -444,17 +445,25 @@ const Energy = () => {
 
   return (
     <View style={containerStyle}>
-      
-      <ScrollView style={styles.scrollView}>
-        <TimeSelector selectedTime={selectedTime} onTimeSelect={setSelectedTime} />
-        <View style={chart_style}>
-          <Text style={styles.cardTitle}>Electricity Consumption</Text>
-          <RoomSlider selectedTime={selectedTime} />
-        </View>
-        <SolarGeneration selectedTime={selectedTime} />
-        <DeviceUsage selectedTime={selectedTime} />
-      </ScrollView>
-      <NavBar />
+
+
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 70 : 0}
+        style={styles.keyboardAvoidingContainer}
+      >
+        <ScrollView style={styles.scrollView}>
+          <TimeSelector selectedTime={selectedTime} onTimeSelect={setSelectedTime} />
+          <View style={chart_style}>
+            <Text style={styles.cardTitle}>Electricity Consumption</Text>
+            <RoomSlider selectedTime={selectedTime} />
+          </View>
+          <SolarGeneration selectedTime={selectedTime} />
+          <DeviceUsage selectedTime={selectedTime} />
+        </ScrollView>
+        <Chatbot/>
+        <NavBar />
+      </KeyboardAvoidingView>
     </View>   
   );
 };

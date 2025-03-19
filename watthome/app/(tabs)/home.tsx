@@ -1,9 +1,10 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, Image, StyleSheet, ScrollView, Dimensions, TouchableOpacity, Switch, Platform, Modal, TextInput, Alert } from 'react-native';
+import { View, Text, Image, StyleSheet, ScrollView, Dimensions, TouchableOpacity, Switch, Platform, Modal, TextInput, Alert, KeyboardAvoidingView } from 'react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Link } from 'expo-router';
 import { styles as fileStyles } from "./LoginStyles";
+import Chatbot from './chatbot';
 
 
 
@@ -721,6 +722,13 @@ const handleAddUser = () => {
 
   return (
     <View style={[localStyles.container, isDesktop ? localStyles.desktop_container : localStyles.mobile_container]}>
+
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 70 : 0}
+        style={localStyles.keyboardAvoidingContainer}
+      >
+
       <ScrollView contentContainerStyle={localStyles.scrollContent}>
         <View style={[localStyles.titleContainer, isDesktop ? localStyles.desktop_titleContainer : localStyles.mobile_titleContainer]}>
           <Text style={fileStyles.Home_title}>Hi Jessica,</Text>
@@ -736,6 +744,8 @@ const handleAddUser = () => {
           {/* Users Section */}
           <View style={[localStyles.section, isDesktop ? localStyles.desktop_section : localStyles.mobile_section]}>
             <Text style={fileStyles.usersTitle}> Users</Text>
+
+
             <ScrollView 
               ref={userScrollRef}
               horizontal 
@@ -876,12 +886,27 @@ const handleAddUser = () => {
           </View>
         {/* second section view */}
       </ScrollView>
-      <NavBar />
+
+
+        <Chatbot />
+        <NavBar />
+        </KeyboardAvoidingView>
+
+
     </View>
   );
 };
 
 const localStyles = StyleSheet.create({
+  keyboardAvoidingContainer: {
+    position: "absolute",
+    right: 0,
+    top: 0,
+    bottom: 0,
+    width: "100%",
+    height: "100%",
+    zIndex: 1000,
+},
   container: {
     flex: 1,
     backgroundColor: '#f5efeb', // Matching your other pages

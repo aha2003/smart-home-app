@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, Platform, TouchableOpacity, ScrollView, Switch, TextInput, Alert } from 'react-native';
+import { View, Text, StyleSheet, Platform, TouchableOpacity, ScrollView, Switch, TextInput, Alert, KeyboardAvoidingView } from 'react-native';
 import { Link } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { styles } from "./LoginStyles";
-//comitt test 
+import Chatbot from './chatbot';
+
 const NavBar = () => {
   const isDesktop = Platform.OS === 'web';
 
@@ -526,207 +527,232 @@ const DevicesPage = () => {
 
   return (
     <View style={[styles.dev_container, isDesktop ? styles.desktopContainer : styles.mobileContainer]}>
-      <View style={styles.contentContainer}>
-        {/* Header with Edit Button */}
-        <View style={styles.headerContainer}>
-          <View style={styles.tabContainer}>
-            <TouchableOpacity
-              style={[styles.tabButton, activeTab === 'devices' && styles.activeTab]}
-              onPress={() => setActiveTab('devices')}
+
+      <KeyboardAvoidingView
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+              keyboardVerticalOffset={Platform.OS === 'ios' ? 70 : 0}
+              style={localStyles.keyboardAvoidingContainer}
             >
-              <Text style={styles.tabText}>Devices</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.tabButton, activeTab === 'groups' && styles.activeTab]}
-              onPress={() => setActiveTab('groups')}
-            >
-              <Text style={styles.tabText}>Device Groups</Text>
-            </TouchableOpacity>
-          </View>
-          <TouchableOpacity 
-            style={styles.editButton}
-            onPress={toggleEditMode}
-          >
-            <Text style={styles.editButtonText}>{editMode ? 'Done' : 'Edit'}</Text>
-          </TouchableOpacity>
-        </View>
 
-        {/* Devices Display */}
-        {activeTab === 'devices' ? (
-          <ScrollView 
-            contentContainerStyle={styles.deviceGrid}
-            showsVerticalScrollIndicator={true}
-          >
-            {devices.map((device) => (
-              <View key={device.id} style={styles.deviceCard}>
-                {editMode && (
-                  <TouchableOpacity 
-                    style={styles.removeButton}
-                    onPress={() => removeDevice(device.id)}
-                  >
-                    <MaterialCommunityIcons name="minus-circle" size={24} color="red" />
-                  </TouchableOpacity>
-                )}
-                
-                <View style={styles.deviceHeader}>
-                  <MaterialCommunityIcons name={device.icon} size={40} color="#fffcf2" />
-                  <Text style={styles.deviceName}>{device.name}</Text>
-                </View>
+          <View style={styles.contentContainer}>
+            {/* Header with Edit Button */}
+            <View style={styles.headerContainer}>
+              <View style={styles.tabContainer}>
+                <TouchableOpacity
+                  style={[styles.tabButton, activeTab === 'devices' && styles.activeTab]}
+                  onPress={() => setActiveTab('devices')}
+                >
+                  <Text style={styles.tabText}>Devices</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.tabButton, activeTab === 'groups' && styles.activeTab]}
+                  onPress={() => setActiveTab('groups')}
+                >
+                  <Text style={styles.tabText}>Device Groups</Text>
+                </TouchableOpacity>
+              </View>
+              <TouchableOpacity 
+                style={styles.editButton}
+                onPress={toggleEditMode}
+              >
+                <Text style={styles.editButtonText}>{editMode ? 'Done' : 'Edit'}</Text>
+              </TouchableOpacity>
+            </View>
 
-                {device.name === 'Thermostat' && deviceStates[device.id] && !editMode && (
-                  <View style={styles.tempControls}>
-                    <TouchableOpacity onPress={() => decreaseTemperature(device.id)}>
-                      <MaterialCommunityIcons name="minus-circle-outline" size={30} color="red" />
-                    </TouchableOpacity>
-                    <Text style={styles.tempText}>{temperatures[device.id] || 23}°C</Text>
-                    <TouchableOpacity onPress={() => increaseTemperature(device.id)}>
-                      <MaterialCommunityIcons name="plus-circle-outline" size={30} color="green" />
-                    </TouchableOpacity>
-                  </View>
-                )}
-
-                {device.name === 'Smart Light' && deviceStates[device.id] && !editMode && (
-                  <View style={styles.brightnessControls}>
-                    <TouchableOpacity onPress={() => decreaseBrightness(device.id)}>
-                      <MaterialCommunityIcons name="minus-circle-outline" size={30} color="red" />
-                    </TouchableOpacity>
-                    <Text style={styles.brightnessText}>{brigntness[device.id] || 75}%</Text>
-                    <TouchableOpacity onPress={() => increaseBrightness(device.id)}>
-                      <MaterialCommunityIcons name="plus-circle-outline" size={30} color="green" />
-                    </TouchableOpacity>
-                  </View>
-                )}
-
-                {device.name === 'Roomba' && deviceStates[device.id] && !editMode && (
-                  <View style={styles.roombaControls}>
-                    <Text style={styles.roombaSpeed}>{roombaSpeed}</Text>
-                    <TouchableOpacity onPress={cycleRoombaSpeed}>
-                      <MaterialCommunityIcons name="reload" size={17} color="white" />
-                    </TouchableOpacity>
-                  </View>
-                )}
-
-                {device.name === 'TV' && deviceStates[device.id] && !editMode && (
-                  <View style={styles.volumeControls}>
-                    <TouchableOpacity onPress={() => decreaseVolume(device.id)}>
-                      <MaterialCommunityIcons name="volume-minus" size={30} color="red" />
-                    </TouchableOpacity>
-                    <Text style={styles.volumeText}>{volume[device.id] || 10}</Text>
-                    <TouchableOpacity onPress={() => increaseVolume(device.id)}>
-                      <MaterialCommunityIcons name="volume-plus" size={30} color="green" />
-                    </TouchableOpacity>
-                  </View>
-                )}
-
-                {device.name === 'Washing Machine' && deviceStates[device.id] && !editMode && (
-                  <View style={styles.controlPanel}>
-                    <Text style={styles.washingStatus}>
-                      {deviceStates[device.id] ? `Running: ${formatTime(timeLeft[device.id] || 0)}` : 'Off'}
-                    </Text>
-                    {deviceStates[device.id] && (
+            {/* Devices Display */}
+            {activeTab === 'devices' ? (
+              <ScrollView 
+                contentContainerStyle={styles.deviceGrid}
+                showsVerticalScrollIndicator={true}
+              >
+                {devices.map((device) => (
+                  <View key={device.id} style={styles.deviceCard}>
+                    {editMode && (
                       <TouchableOpacity 
-                        style={styles.resetButton}
-                        onPress={() => setTimeLeft(prev => ({ ...prev, [device.id]: 1200 }))}
+                        style={styles.removeButton}
+                        onPress={() => removeDevice(device.id)}
                       >
-                        <MaterialCommunityIcons name="restart" size={20} color="white" />
+                        <MaterialCommunityIcons name="minus-circle" size={24} color="red" />
                       </TouchableOpacity>
                     )}
+                    
+                    <View style={styles.deviceHeader}>
+                      <MaterialCommunityIcons name={device.icon} size={40} color="#fffcf2" />
+                      <Text style={styles.deviceName}>{device.name}</Text>
+                    </View>
+
+                    {device.name === 'Thermostat' && deviceStates[device.id] && !editMode && (
+                      <View style={styles.tempControls}>
+                        <TouchableOpacity onPress={() => decreaseTemperature(device.id)}>
+                          <MaterialCommunityIcons name="minus-circle-outline" size={30} color="red" />
+                        </TouchableOpacity>
+                        <Text style={styles.tempText}>{temperatures[device.id] || 23}°C</Text>
+                        <TouchableOpacity onPress={() => increaseTemperature(device.id)}>
+                          <MaterialCommunityIcons name="plus-circle-outline" size={30} color="green" />
+                        </TouchableOpacity>
+                      </View>
+                    )}
+
+                    {device.name === 'Smart Light' && deviceStates[device.id] && !editMode && (
+                      <View style={styles.brightnessControls}>
+                        <TouchableOpacity onPress={() => decreaseBrightness(device.id)}>
+                          <MaterialCommunityIcons name="minus-circle-outline" size={30} color="red" />
+                        </TouchableOpacity>
+                        <Text style={styles.brightnessText}>{brigntness[device.id] || 75}%</Text>
+                        <TouchableOpacity onPress={() => increaseBrightness(device.id)}>
+                          <MaterialCommunityIcons name="plus-circle-outline" size={30} color="green" />
+                        </TouchableOpacity>
+                      </View>
+                    )}
+
+                    {device.name === 'Roomba' && deviceStates[device.id] && !editMode && (
+                      <View style={styles.roombaControls}>
+                        <Text style={styles.roombaSpeed}>{roombaSpeed}</Text>
+                        <TouchableOpacity onPress={cycleRoombaSpeed}>
+                          <MaterialCommunityIcons name="reload" size={17} color="white" />
+                        </TouchableOpacity>
+                      </View>
+                    )}
+
+                    {device.name === 'TV' && deviceStates[device.id] && !editMode && (
+                      <View style={styles.volumeControls}>
+                        <TouchableOpacity onPress={() => decreaseVolume(device.id)}>
+                          <MaterialCommunityIcons name="volume-minus" size={30} color="red" />
+                        </TouchableOpacity>
+                        <Text style={styles.volumeText}>{volume[device.id] || 10}</Text>
+                        <TouchableOpacity onPress={() => increaseVolume(device.id)}>
+                          <MaterialCommunityIcons name="volume-plus" size={30} color="green" />
+                        </TouchableOpacity>
+                      </View>
+                    )}
+
+                    {device.name === 'Washing Machine' && deviceStates[device.id] && !editMode && (
+                      <View style={styles.controlPanel}>
+                        <Text style={styles.washingStatus}>
+                          {deviceStates[device.id] ? `Running: ${formatTime(timeLeft[device.id] || 0)}` : 'Off'}
+                        </Text>
+                        {deviceStates[device.id] && (
+                          <TouchableOpacity 
+                            style={styles.resetButton}
+                            onPress={() => setTimeLeft(prev => ({ ...prev, [device.id]: 1200 }))}
+                          >
+                            <MaterialCommunityIcons name="restart" size={20} color="white" />
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    )}
+
+                    {device.name === 'CCTV' && deviceStates[device.id] && !editMode && (
+                      <View style={styles.controlPanel}>
+                        <Text style={styles.controlText}>
+                          {'Recording...'}
+                        </Text>
+                      </View>
+                    )}
+
+                    {!editMode && (
+                      <Switch value={deviceStates[device.id]} onValueChange={() => toggleSwitch(device.id)} />
+                    )}
+                    <Text style={styles.deviceLocation}>{device.location}</Text>
                   </View>
-                )}
+                ))}
 
-                {device.name === 'CCTV' && deviceStates[device.id] && !editMode && (
-                  <View style={styles.controlPanel}>
-                    <Text style={styles.controlText}>
-                      {'Recording...'}
-                    </Text>
-                  </View>
+                {/* Add New Device Card */}
+                {editMode && (
+                  <TouchableOpacity 
+                    style={styles.addDeviceCard}
+                    onPress={() => setShowAddForm(true)}
+                  >
+                    <MaterialCommunityIcons name="plus-circle" size={50} color="#001322" />
+                    <Text style={styles.addDeviceText}>Add Device</Text>
+                  </TouchableOpacity>
                 )}
-
-                {!editMode && (
-                  <Switch value={deviceStates[device.id]} onValueChange={() => toggleSwitch(device.id)} />
-                )}
-                <Text style={styles.deviceLocation}>{device.location}</Text>
-              </View>
-            ))}
-
-            {/* Add New Device Card */}
-            {editMode && (
-              <TouchableOpacity 
-                style={styles.addDeviceCard}
-                onPress={() => setShowAddForm(true)}
-              >
-                <MaterialCommunityIcons name="plus-circle" size={50} color="#001322" />
-                <Text style={styles.addDeviceText}>Add Device</Text>
-              </TouchableOpacity>
+              </ScrollView>
+            ) : (
+              <>
+                {renderDeviceGroups()}
+                {showAddGroupForm && renderAddGroupForm()}
+              </>
             )}
-          </ScrollView>
-        ) : (
-          <>
-            {renderDeviceGroups()}
-            {showAddGroupForm && renderAddGroupForm()}
-          </>
-        )}
 
-        {/* Add Device Form */}
-        {showAddForm && (
-          <View style={styles.addDeviceFormContainer}>
-            <View style={styles.addDeviceForm}>
-              <Text style={styles.addDeviceFormTitle}>Add New Device</Text>
-              
-              <Text style={styles.formLabel}>Device Type</Text>
-              <View style={styles.pickerContainer}>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                  {['Smart Light', 'Thermostat', 'CCTV', 'TV', 'Roomba', 'Washing Machine'].map((type) => (
+            {/* Add Device Form */}
+            {showAddForm && (
+              <View style={styles.addDeviceFormContainer}>
+                <View style={styles.addDeviceForm}>
+                  <Text style={styles.addDeviceFormTitle}>Add New Device</Text>
+                  
+                  <Text style={styles.formLabel}>Device Type</Text>
+                  <View style={styles.pickerContainer}>
+                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                      {['Smart Light', 'Thermostat', 'CCTV', 'TV', 'Roomba', 'Washing Machine'].map((type) => (
+                        <TouchableOpacity 
+                          key={type}
+                          style={[
+                            styles.deviceTypeOption,
+                            newDeviceType === type && styles.selectedDeviceType
+                          ]}
+                          onPress={() => setNewDeviceType(type)}
+                        >
+                          <Text style={[
+                            styles.deviceTypeText,
+                            newDeviceType === type && styles.selectedDeviceTypeText
+                          ]}>
+                            {type}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
+                  
+                  <Text style={styles.formLabel}>Location</Text>
+                  <TextInput
+                    style={styles.formInput}
+                    value={newDeviceLocation}
+                    onChangeText={setNewDeviceLocation}
+                    placeholder="Enter location (e.g. Living Room)"
+                    placeholderTextColor="#999"
+                  />
+                  
+                  <View style={styles.formButtons}>
                     <TouchableOpacity 
-                      key={type}
-                      style={[
-                        styles.deviceTypeOption,
-                        newDeviceType === type && styles.selectedDeviceType
-                      ]}
-                      onPress={() => setNewDeviceType(type)}
+                      style={styles.cancelButton}
+                      onPress={() => setShowAddForm(false)}
                     >
-                      <Text style={[
-                        styles.deviceTypeText,
-                        newDeviceType === type && styles.selectedDeviceTypeText
-                      ]}>
-                        {type}
-                      </Text>
+                      <Text style={styles.cancelButtonText}>Cancel</Text>
                     </TouchableOpacity>
-                  ))}
-                </ScrollView>
+                    
+                    <TouchableOpacity 
+                      style={styles.addButton}
+                      onPress={addNewDevice}
+                    >
+                      <Text style={styles.addButtonText}>Add Device</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
               </View>
-              
-              <Text style={styles.formLabel}>Location</Text>
-              <TextInput
-                style={styles.formInput}
-                value={newDeviceLocation}
-                onChangeText={setNewDeviceLocation}
-                placeholder="Enter location (e.g. Living Room)"
-                placeholderTextColor="#999"
-              />
-              
-              <View style={styles.formButtons}>
-                <TouchableOpacity 
-                  style={styles.cancelButton}
-                  onPress={() => setShowAddForm(false)}
-                >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
-                
-                <TouchableOpacity 
-                  style={styles.addButton}
-                  onPress={addNewDevice}
-                >
-                  <Text style={styles.addButtonText}>Add Device</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
+            )}
           </View>
-        )}
-      </View>
-      <NavBar />
+          <Chatbot />
+          <NavBar />
+
+      </KeyboardAvoidingView>
+
+
     </View>
   );
 };
+
+
+const localStyles = StyleSheet.create({
+  keyboardAvoidingContainer: {
+    position: "absolute",
+    right: 0,
+    top: 0,
+    bottom: 0,
+    width: "100%",
+    height: "100%",
+    zIndex: 1000,
+},
+});
 
 export default DevicesPage;

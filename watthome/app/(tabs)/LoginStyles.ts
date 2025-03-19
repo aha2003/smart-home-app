@@ -154,6 +154,7 @@ export const styles = StyleSheet.create({
     paddingBottom: 60,
     alignItems: 'center',
     justifyContent: 'space-around',
+    //marginLeft: 1000,
   },
   
   mobileNav: {
@@ -192,6 +193,9 @@ export const styles = StyleSheet.create({
   // New styles for desktop and mobile containers
   desktopContainer: {
     paddingLeft: 70, // Space for the sidebar nav
+    padding : 2000,
+    marginLeft: 60,
+    paddingRight: 60,
   },
 
   icon: {
@@ -1178,6 +1182,7 @@ export const styles = StyleSheet.create({
     //alignItems: 'center',
     //flexWrap: 'wrap',
     paddingTop: -200,
+    marginLeft: 55,
   },
 
   mobile_energy_container: {
@@ -1414,5 +1419,15 @@ export const styles = StyleSheet.create({
     height: 60,
     borderRadius: 20,
   },
+
+  keyboardAvoidingContainer: {
+    position: "absolute",
+    right: 0,
+    top: 0,
+    bottom: 0,
+    width: "100%",
+    height: "100%",
+    zIndex: 1000,
+},
   
 });

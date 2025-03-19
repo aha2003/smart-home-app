@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, StyleSheet, Platform, TouchableOpacity, Text, Switch, ScrollView, Image, Dimensions, TextInput, Modal } from 'react-native';
+import { View, StyleSheet, Platform, TouchableOpacity, Text, Switch, ScrollView, Image, Dimensions, TextInput, Modal, KeyboardAvoidingView } from 'react-native';
 import { Link, useRouter } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { styles } from "./LoginStyles";
@@ -7,6 +7,7 @@ import { Instagram, Twitter, Camera, Mail } from 'lucide-react-native';
 import ChangePasswordModal from './ChangePasswordModal';
 import { auth } from "../../backend/firebaseConfig"; // Ensure this import is present
 import { signOut } from "firebase/auth"; // Import signOut function
+import Chatbot from './chatbot';
 
 interface FAQItem {
   question: string;
@@ -696,9 +697,15 @@ const Settings = () => {
       styles.dev_container, 
       isDesktop ? styles.desktopContainer : styles.mobileContainerProfile
     ]}>
-      
-      {isDesktop ? <DesktopLayout /> : <MobileLayout />}
-      <NavBar />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 70 : 0}
+        style={styles.keyboardAvoidingContainer}
+      >
+        {isDesktop ? <DesktopLayout /> : <MobileLayout />}
+        <Chatbot />
+        <NavBar />
+      </KeyboardAvoidingView>
     </View>
   );
 };
