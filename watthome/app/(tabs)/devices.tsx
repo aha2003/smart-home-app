@@ -87,7 +87,7 @@ const initialDeviceGroups = [
   }
 ];
 
-const initialDevices: { id: number, name: string, location: string, icon: 'lightbulb-outline' | 'thermometer' | 'cctv' | 'television' | 'robot-vacuum' | 'washing-machine' | 'pill' }[] = [
+const initialDevices: { id: number, name: string, location: string, icon: 'lightbulb-outline' | 'thermometer' | 'cctv' | 'television' | 'robot-vacuum' | 'washing-machine' | 'pill' | 'heart-box-outline' }[] = [
   { id: 1, name: 'Smart Light', location: 'Living Room', icon: 'lightbulb-outline' },
   { id: 2, name: 'Thermostat', location: 'Living Room', icon: 'thermometer' },
   { id: 3, name: 'CCTV', location: 'Front Door', icon: 'cctv' },
@@ -100,10 +100,11 @@ const initialDevices: { id: number, name: string, location: string, icon: 'light
   { id: 10, name: 'Thermostat', location: 'Kitchen', icon: 'thermometer' },
   { id: 11, name: 'Washing Machine', location: 'Kitchen', icon: 'washing-machine' },
   { id: 12, name: 'Pill Dispenser', location: 'Grandpa Room', icon: 'pill' },
-  { id: 13, name: 'Thermostat', location: 'Grandma Room', icon: 'thermometer' },
-  { id: 14, name: 'Smart Light', location: 'Grandma Room', icon: 'lightbulb-outline' },
+  { id: 13, name: 'Thermostat', location: 'Grandpa Room', icon: 'thermometer' },
+  { id: 14, name: 'Smart Light', location: 'Grandpa Room', icon: 'lightbulb-outline' },
   { id: 15, name: 'Thermostat', location: 'Kids Room', icon: 'thermometer' },
   { id: 16, name: 'Smart Light', location: 'Kids Room', icon: 'lightbulb-outline' },
+  ({ id: 17, name: 'Heart Rate Monitor', location: 'Grandpa Room', icon: 'heart-box-outline' }),
 ];
 
 const DevicesPage = () => {
@@ -300,6 +301,14 @@ const DevicesPage = () => {
                       </Text>
                     </View>
                   )}
+
+                  {device.name === 'Heart Rate Monitor' && deviceStates[device.id] && !editMode && (
+                    <View style={styles.controlPanel}>
+                      <Text style={styles.controlText}>
+                        {'Recording...'}
+                      </Text>
+                    </View>
+                  )}
   
                   {!editMode && (
                     <Switch value={deviceStates[device.id]} onValueChange={() => toggleSwitch(device.id)} />
@@ -437,6 +446,7 @@ const DevicesPage = () => {
         case 'Smart Light': return 'lightbulb-outline';
         case 'Thermostat': return 'thermometer';
         case 'CCTV': return 'cctv';
+        case 'Heart Rate Monitor': return 'heart-box-outline';
         case 'TV': return 'television';
         case 'Roomba': return 'robot-vacuum';
         case 'Washing Machine': return 'washing-machine';
@@ -449,7 +459,7 @@ const DevicesPage = () => {
       id: newId,
       name: newDeviceType,
       location: newDeviceLocation,
-      icon: getIconForType(newDeviceType) as 'lightbulb-outline' | 'thermometer' | 'cctv' | 'television' | 'robot-vacuum' | 'washing-machine'
+      icon: getIconForType(newDeviceType) as 'lightbulb-outline' | 'thermometer' | 'cctv' | 'television' | 'robot-vacuum' | 'washing-machine' | 'heart-box-outline'
     };
 
     setDevices([...devices, newDevice]);
@@ -643,6 +653,14 @@ const DevicesPage = () => {
                     )}
 
                     {device.name === 'CCTV' && deviceStates[device.id] && !editMode && (
+                      <View style={styles.controlPanel}>
+                        <Text style={styles.controlText}>
+                          {'Recording...'}
+                        </Text>
+                      </View>
+                    )}
+
+                    {device.name === 'Heart Rate Monitor' && deviceStates[device.id] && !editMode && (
                       <View style={styles.controlPanel}>
                         <Text style={styles.controlText}>
                           {'Recording...'}

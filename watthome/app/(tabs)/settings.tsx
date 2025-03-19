@@ -197,6 +197,12 @@ const Settings = () => {
                   </View>
                 </View>
                 <View style={styles.formGroup}>
+                  <Text style={styles.label}>Phone Number</Text>
+                  <View style={styles.inputContainer}>
+                    <Text style={styles.inputValue}>+971 055 189 9371</Text>
+                  </View>
+                </View>
+                <View style={styles.formGroup}>
                   <Text style={styles.label}>Location</Text>
                   <View style={styles.inputContainer}>
                     <Text style={styles.inputValue}>Dubai, UAE</Text>
@@ -215,8 +221,9 @@ const Settings = () => {
             
             <View style={styles.formGroup}>
               <Text style={styles.label}>Username</Text>
+              
               <TextInput
-                style={styles.input}
+                style={styles.inputContainer}
                 value={username}
                 onChangeText={setUsername}
                 placeholder="Enter username"
@@ -225,7 +232,10 @@ const Settings = () => {
 
             <View style={styles.formGroup}>
               <Text style={styles.label}>Password</Text>
-              <Text style={styles.input}>**********</Text>
+              {/* <Text style={styles.input}>**********</Text> */}
+              <View style={styles.inputContainer}>
+                  <Text style={styles.inputValue}>********</Text>
+                </View>
             </View>
     
             <View style={styles.formGroup}>
@@ -251,7 +261,17 @@ const Settings = () => {
 
             <View style={styles.formGroup}>
               <Text style={styles.label}>Recovery Email</Text>
-              <Text style={styles.input}>{auth.currentUser ? auth.currentUser.email : 'Not logged in'}</Text>
+              {/* <Text style={styles.input}>{auth.currentUser ? auth.currentUser.email : 'Not logged in'}</Text> */}
+              <View style={styles.inputContainer}>
+                  <Text style={styles.inputValue}>matea.2391@gmail.com</Text>
+                </View>
+            </View>
+
+            <View style={styles.formGroup}>
+                <Text style={styles.label}>Privilege Level</Text>
+                <View style={styles.inputContainer}>
+                  <Text style={styles.inputValue}>Home Owner</Text>
+                </View>
             </View>
     
             <View style={styles.formGroup}>
