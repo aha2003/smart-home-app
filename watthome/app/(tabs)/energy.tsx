@@ -6,6 +6,21 @@ import { BarChart as RNBarChart } from 'react-native-chart-kit';
 import { StackedBarChart } from 'react-native-chart-kit';
 import { styles } from "./LoginStyles";
 import Chatbot from './chatbot';
+import RNHTMLtoPDF from 'react-native-html-to-pdf';
+
+
+
+
+
+
+import { LogBox } from 'react-native';
+LogBox.ignoreLogs([
+  "TypeError: genAI.listModels is not a function",
+]);
+
+
+
+
 
 // Keep NavBar component unchanged
 const NavBar = () => {
@@ -443,6 +458,101 @@ const Energy = () => {
   const containerStyle = width > 768 ? styles.desktop_energy_container : styles.mobile_energy_container; 
   const chart_style = width > 768 ? styles.desktop_chart_style : styles.mobile_chart_style; 
 
+
+  const generatePDF = async () => {
+    try {
+      const htmlContent = `
+        <html>
+          <head>
+            <style>
+              body {
+                font-family: Arial, sans-serif;
+                padding: 20px;
+              }
+              h1 {
+                text-align: center;
+                color: #001322;
+              }
+              .chart {
+                margin-bottom: 20px;
+              }
+               .chart-title {
+                font-size: 18px;
+                font-weight: bold;
+                margin-bottom: 10px;
+              }
+              .chart-data {
+                font-size: 14px;
+                color: #555;
+              }
+            </style>
+          </head>
+           <body>
+            <h1>Energy Report</h1>
+            <div class="chart">
+              <div class="chart-title">Electricity Consumption</div>
+              <div class="chart-data">
+                Time Range: ${selectedTime.charAt(0).toUpperCase() + selectedTime.slice(1)}
+              </div>
+              <div class="chart-data">
+                Data: ${JSON.stringify(getChartDataForPDF('Electricity Consumption', selectedTime))}
+              </div>
+            </div>
+            <div class="chart">
+              <div class="chart-title">Solar Energy Generation</div>
+              <div class="chart-data">
+                Data: ${JSON.stringify(getChartDataForPDF('Solar Energy Generation', selectedTime))}
+              </div>
+            </div>
+            <div class="chart">
+              <div class="chart-title">Individual Device Usage</div>
+              <div class="chart-data">
+                Data: ${JSON.stringify(getChartDataForPDF('Individual Device Usage', selectedTime))}
+              </div>
+            </div>
+          </body>
+        </html>
+      `;
+
+      const options = {
+        html: htmlContent,
+        fileName: 'Energy_Report',
+        directory: 'Documents',
+      };
+
+      const file = await RNHTMLtoPDF.convert(options);
+      console.log('PDF generated at:', file.filePath);
+      alert('PDF generated successfully!');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Failed to generate PDF.');
+    }
+  };
+
+  const getChartDataForPDF = (chartType: string, timeRange: string) => {
+    switch (chartType) {
+      case 'Electricity Consumption':
+        return {
+          labels: ['6am', '9am', '12pm', '3pm', '6pm', '9pm'],
+          data: [2.5, 3.8, 4.2, 3.9, 4.5, 3.2],
+        };
+      case 'Solar Energy Generation':
+        return {
+          labels: ['6am', '9am', '12pm', '3pm', '6pm', '9pm'],
+          data: [0.2, 2.8, 4.5, 4.2, 2.1, 0.1],
+        };
+      case 'Individual Device Usage':
+        return {
+          labels: ['TV', 'CCTV', 'Roomba', 'Washing Machine', 'Lights', 'Thermostat'],
+          data: [1.2, 0.8, 1.5, 1.0, 2.3, 1.8],
+        };
+      default:
+        return {};
+    }
+  };
+
+
+
   return (
     <View style={containerStyle}>
 
@@ -461,6 +571,9 @@ const Energy = () => {
           <SolarGeneration selectedTime={selectedTime} />
           <DeviceUsage selectedTime={selectedTime} />
         </ScrollView>
+        <TouchableOpacity style={localStyles.pdfButton} onPress={generatePDF}>
+          <Text style={localStyles.pdfButtonText}>Generate PDF Report</Text>
+        </TouchableOpacity>
         <Chatbot/>
         <NavBar />
       </KeyboardAvoidingView>
@@ -470,6 +583,22 @@ const Energy = () => {
 
 // Add local styles
 const localStyles = StyleSheet.create({
+
+  pdfButton: {
+    backgroundColor: '#001322',
+    padding: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+    margin: 10,
+  },
+  pdfButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+
+
+
   sliderContainer: {
     marginVertical: 10,
   },

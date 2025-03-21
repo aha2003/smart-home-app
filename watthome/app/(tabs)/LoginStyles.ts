@@ -425,7 +425,7 @@ export const styles = StyleSheet.create({
   },
   
   addDeviceFormContainer: {
-    position: 'absolute',
+    position: Platform.OS === 'web' ? 'fixed': 'absolute',
     top: 0,
     left: 0,
     right: 0,
@@ -433,7 +433,7 @@ export const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    zIndex: 1000,
+    zIndex: 2000,
   },
   
   addDeviceForm: {
@@ -609,7 +609,7 @@ export const styles = StyleSheet.create({
   },
   
   addGroupFormContainer: {
-    position: 'absolute',
+    position: Platform.OS === 'web' ? 'fixed' : 'absolute',
     top: 0,
     left: 0,
     right: 0,
@@ -618,6 +618,7 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 16,
+    zIndex: 2000,
   },
   
   addGroupForm: {

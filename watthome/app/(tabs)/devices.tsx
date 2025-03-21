@@ -4,6 +4,16 @@ import { Link } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { styles } from "./LoginStyles";
 import Chatbot from './chatbot';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+
+import { LogBox } from 'react-native';
+LogBox.ignoreLogs([
+  "TypeError: genAI.listModels is not a function",
+]);
+
+
+
 
 const NavBar = () => {
   const isDesktop = Platform.OS === 'web';
@@ -99,12 +109,13 @@ const initialDevices: { id: number, name: string, location: string, icon: 'light
   { id: 9, name: 'Smart Light', location: 'Kitchen', icon: 'lightbulb-outline' },
   { id: 10, name: 'Thermostat', location: 'Kitchen', icon: 'thermometer' },
   { id: 11, name: 'Washing Machine', location: 'Kitchen', icon: 'washing-machine' },
-  { id: 12, name: 'Pill Dispenser', location: 'Grandpa Room', icon: 'pill' },
-  { id: 13, name: 'Thermostat', location: 'Grandpa Room', icon: 'thermometer' },
-  { id: 14, name: 'Smart Light', location: 'Grandpa Room', icon: 'lightbulb-outline' },
+  { id: 12, name: 'Pill Dispenser', location: 'Grandparents Room', icon: 'pill' },
+  { id: 13, name: 'Thermostat', location: 'Grandparents Room', icon: 'thermometer' },
+  { id: 14, name: 'Smart Light', location: 'Grandparents Room', icon: 'lightbulb-outline' },
   { id: 15, name: 'Thermostat', location: 'Kids Room', icon: 'thermometer' },
   { id: 16, name: 'Smart Light', location: 'Kids Room', icon: 'lightbulb-outline' },
-  ({ id: 17, name: 'Heart Rate Monitor', location: 'Grandpa Room', icon: 'heart-box-outline' }),
+  ({ id: 17, name: 'Heart Rate Monitor', location: 'Grandparents Room', icon: 'heart-box-outline' }),
+  { id: 18, name: 'TV', location: 'BedRoom', icon: 'television' },
 ];
 
 const DevicesPage = () => {
@@ -469,15 +480,20 @@ const DevicesPage = () => {
     setShowAddForm(false);
   };
 
-  const toggleSwitch = (id: number) => {
+  const toggleSwitch = async (id: number) => {
     setDeviceStates((prev) => {
       const newState = { ...prev, [id]: !prev[id] };
-      
+
+      // Save the updated state to AsyncStorage
+      AsyncStorage.setItem('deviceStates', JSON.stringify(newState)).catch((error) => {
+        console.error('Error saving device states to AsyncStorage:', error);
+      });
+
       // If this is the washing machine and we're turning it on, reset the timer
       if (id === WASHING_MACHINE_ID && newState[id]) {
-        setTimeLeft(prevTime => ({ ...prevTime, [id]: 1200 })); // 20 minutes
+        setTimeLeft((prevTime) => ({ ...prevTime, [id]: 1200 })); // 20 minutes
       }
-      
+
       return newState;
     });
   };
@@ -506,6 +522,22 @@ const DevicesPage = () => {
     setVolume((prev) => ({ ...prev, [id]: (prev[id] || 10) - 1 }));
   };
 
+
+  useEffect(() => {
+    const loadDeviceStates = async () => {
+      try {
+        const storedDeviceStates = await AsyncStorage.getItem('deviceStates');
+        if (storedDeviceStates) {
+          setDeviceStates(JSON.parse(storedDeviceStates));
+        }
+      } catch (error) {
+        console.error('Error loading device states from AsyncStorage:', error);
+      }
+    };
+
+    loadDeviceStates();
+  }, []);
+
   useEffect(() => {
     // Check if washing machine is on
     const washingMachine = devices.find(d => d.id === WASHING_MACHINE_ID);
@@ -521,6 +553,8 @@ const DevicesPage = () => {
       return () => clearInterval(timer);
     }
   }, [deviceStates, timeLeft, devices]); 
+
+  
   
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -542,6 +576,7 @@ const DevicesPage = () => {
               behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
               keyboardVerticalOffset={Platform.OS === 'ios' ? 70 : 0}
               style={localStyles.keyboardAvoidingContainer}
+              enabled={Platform.OS !== 'web'}
             >
 
           <View style={styles.contentContainer}>
@@ -669,7 +704,10 @@ const DevicesPage = () => {
                     )}
 
                     {!editMode && (
-                      <Switch value={deviceStates[device.id]} onValueChange={() => toggleSwitch(device.id)} />
+                      <Switch
+                        value={deviceStates[device.id]}
+                        onValueChange={() => toggleSwitch(device.id)}
+                      />
                     )}
                     <Text style={styles.deviceLocation}>{device.location}</Text>
                   </View>
@@ -749,6 +787,7 @@ const DevicesPage = () => {
                 </View>
               </View>
             )}
+            
           </View>
           <Chatbot />
           <NavBar />

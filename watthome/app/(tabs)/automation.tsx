@@ -1,11 +1,19 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, FlatList, Platform, Switch, TextInput, ScrollView ,KeyboardAvoidingView } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text,StyleSheet, TouchableOpacity, Modal, FlatList, Platform, Switch, TextInput, ScrollView, KeyboardAvoidingView } from 'react-native';
 import { Sun, Moon, Clock, Power, Plus, Thermometer, CreditCard as Edit, X, Check } from 'lucide-react-native';
 import { Link } from 'expo-router';
-import DateTimePicker from '@react-native-community/datetimepicker';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { styles } from "./LoginStyles";
 import Chatbot from './chatbot';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+
+
+
+import { LogBox } from 'react-native';
+LogBox.ignoreLogs([
+  "TypeError: genAI.listModels is not a function",
+]);
 
 
 const NavBar = () => {
@@ -67,21 +75,19 @@ const NavBar = () => {
   );
 };
 
-
 // Helper function to format time
-const formatTime = (date) => {
-  if (!date) return '';
-  if (typeof date === 'string') return date;
-  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+const formatTime = (timeString) => {
+  if (!timeString) return '';
+  return timeString;
 };
 
 // Available devices for selection
 const availableDevices = [
   { id: 1, name: 'Smart Light', location: 'Living Room', icon: 'lightbulb-outline' },
-  { id: 2, name: 'Thermostat ', location: 'Living Room', icon: 'thermometer' },
+  { id: 2, name: 'Thermostat', location: 'Living Room', icon: 'thermometer' },
   { id: 3, name: 'CCTV', location: 'Front Door', icon: 'cctv' },
   { id: 4, name: 'TV', location: 'Living Room', icon: 'television' },
-  { id: 5, name: 'Smart Light', location: 'BedRoom', icon: 'lightbulb-outline' },
+  { id: 5, name: 'Smart Light', location: 'Bedroom', icon: 'lightbulb-outline' },
   { id: 6, name: 'Thermostat', location: 'Bedroom', icon: 'thermometer' },
   { id: 7, name: 'CCTV', location: 'Garage Door', icon: 'cctv' },
   { id: 8, name: 'Roomba', location: 'Kitchen', icon: 'robot-vacuum' },
@@ -95,55 +101,19 @@ const availableDevices = [
   { id: 16, name: 'Smart Light', location: 'Kids Room', icon: 'lightbulb-outline' },
 ];
 
-// Default automations data
-const defaultAutomations = [
-  {
-    id: '1',
-    name: 'Night Mode',
-    devices: [
-      { id: '1', name: 'Living Room Lights', location: 'Living_Room' },
-      { id: '9', name: 'Kitchen Lights', location: 'Kitchen' }
-    ],
-    trigger: 'Time of Day',
-    triggerTime: '22:00',
-    triggerValue: null,
-    actions: 'Turn Off',
-    actionValue: null,
-    frequency: 'Daily',
-    notifyBefore: false,
-    isActive: true
-  },
-  {
-    id: '2',
-    name: 'Morning Routine',
-    devices: [
-      { id: '5', name: 'Bedroom Lights', location: 'Bedroom' },
-      { id: '6', name: 'Thermostat', location: 'Living_Room' }
-    ],
-    trigger: 'Time of Day',
-    triggerTime: '07:00',
-    triggerValue: null,
-    actions: 'Turn On',
-    actionValue: null,
-    frequency: 'Weekdays',
-    notifyBefore: true,
-    isActive: true
-  }
-];
-
 export default function AutomationsScreen() {
-  const [automations, setAutomations] = useState(defaultAutomations);
+  const [automations, setAutomations] = useState([]);
   const [detailsModalVisible, setDetailsModalVisible] = useState(false);
   const [selectedAutomation, setSelectedAutomation] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [addModalVisible, setAddModalVisible] = useState(false);
-  const [showTimePicker, setShowTimePicker] = useState(false);
 
   // New automation form state
   const [newAutomation, setNewAutomation] = useState({
     name: '',
     trigger: '',
-    triggerTime: new Date(),
+    timeInput: '12:00',
+    timePeriod: 'AM',
     triggerValue: '',
     devices: [],
     actions: '',
@@ -163,6 +133,132 @@ export default function AutomationsScreen() {
     { label: 'Set Brightness', value: 'Set Brightness' },
   ];
 
+  // Default automations
+const defaultAutomations = [
+  {
+    id: 'auto_1',
+    name: 'Morning Lights',
+    trigger: 'Time of Day',
+    triggerTime: '07:00 AM',
+    triggerValue: '',
+    devices: [
+      { id: 1, name: 'Smart Light', location: 'Living Room', icon: 'lightbulb-outline' },
+      { id: 5, name: 'Smart Light', location: 'Bedroom', icon: 'lightbulb-outline' },
+    ],
+    actions: 'Turn On',
+    actionValue: '',
+    isActive: true,
+    notifyBefore: false,
+    frequency: 'Daily',
+  },
+  {
+    id: 'auto_2',
+    name: 'Night Mode',
+    trigger: 'Time of Day',
+    triggerTime: '10:00 PM',
+    triggerValue: '',
+    devices: [
+      { id: 1, name: 'Smart Light', location: 'Living Room', icon: 'lightbulb-outline' },
+      { id: 5, name: 'Smart Light', location: 'Bedroom', icon: 'lightbulb-outline' },
+      { id: 6, name: 'Thermostat', location: 'Bedroom', icon: 'thermometer' },
+    ],
+    actions: 'Turn Off',
+    actionValue: '',
+    isActive: true,
+    notifyBefore: false,
+    frequency: 'Daily',
+  },
+];
+
+useEffect(() => {
+  const loadAutomations = async () => {
+    try {
+      const storedAutomations = await AsyncStorage.getItem('automations');
+      if (storedAutomations) {
+        setAutomations(JSON.parse(storedAutomations));
+      } else {
+        // If no automations are saved, load the default automations
+        setAutomations(defaultAutomations);
+      }
+    } catch (error) {
+      console.error('Error loading automations from AsyncStorage:', error);
+      // If there's an error, fallback to default automations
+      setAutomations(defaultAutomations);
+    }
+  };
+
+  loadAutomations();
+}, []);
+
+  // useEffect(() => {
+  //   const loadAutomations = async () => {
+  //     try {
+  //       const storedAutomations = await AsyncStorage.getItem('automations');
+  //       if (storedAutomations) {
+  //         setAutomations(JSON.parse(storedAutomations));
+  //       }
+  //     } catch (error) {
+  //       console.error('Error loading automations from AsyncStorage:', error);
+  //     }
+  //   };
+
+  //   loadAutomations();
+  // }, []);
+
+  const saveNewAutomation = async () => {
+    if (!newAutomation.name || !newAutomation.trigger || newAutomation.devices.length === 0 || !newAutomation.actions) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
+    // Validate time format
+    if (newAutomation.trigger === 'Time of Day') {
+      const timePattern = /^(0[1-9]|1[0-2]):[0-5][0-9]$/;
+      if (!timePattern.test(newAutomation.timeInput)) {
+        alert('Please enter a valid time in the format HH:MM (e.g., 09:30)');
+        return;
+      }
+    }
+
+    const newId = `auto_${Date.now()}`;
+    const formattedTime = `${newAutomation.timeInput} ${newAutomation.timePeriod}`;
+
+    const automationToAdd = {
+      id: newId,
+      name: newAutomation.name,
+      trigger: newAutomation.trigger,
+      triggerTime: formattedTime,
+      triggerValue: newAutomation.triggerValue,
+      devices: newAutomation.devices,
+      actions: newAutomation.actions,
+      actionValue: newAutomation.actionValue,
+      isActive: true,
+      notifyBefore: false,
+      frequency: 'Daily',
+    };
+
+    const updatedAutomations = [...automations, automationToAdd];
+    setAutomations(updatedAutomations);
+
+    try {
+      await AsyncStorage.setItem('automations', JSON.stringify(updatedAutomations));
+    } catch (error) {
+      console.error('Error saving automations to AsyncStorage:', error);
+    }
+
+    setAddModalVisible(false);
+    setNewAutomation({
+      name: '',
+      trigger: '',
+      timeInput: '12:00',
+      timePeriod: 'PM',
+      triggerValue: '',
+      devices: [],
+      actions: '',
+      actionValue: '',
+    });
+  };
+
   const toggleAutomation = (id) => {
     setAutomations(automations.map(auto => 
       auto.id === id ? { ...auto, isActive: !auto.isActive } : auto
@@ -171,20 +267,6 @@ export default function AutomationsScreen() {
 
   const deleteAutomation = (id) => {
     setAutomations(automations.filter(auto => auto.id !== id));
-  };
-
-  const getIcon = (name) => {
-    return <Clock size={24} color="#FFA500" />;
-  };
-
-  const handleTimeChange = (event, selectedDate) => {
-    setShowTimePicker(false);
-    if (selectedDate) {
-      setNewAutomation({
-        ...newAutomation,
-        triggerTime: selectedDate,
-      });
-    }
   };
 
   const toggleDeviceSelection = (device) => {
@@ -197,38 +279,6 @@ export default function AutomationsScreen() {
     });
   };
 
-  const saveNewAutomation = () => {
-    if (!newAutomation.name || !newAutomation.trigger || newAutomation.devices.length === 0 || !newAutomation.actions) {
-      alert('Please fill in all required fields');
-      return;
-    }
-
-    const newId = `auto_${Date.now()}`;
-    const formattedTime = formatTime(newAutomation.triggerTime);
-    
-    const automationToAdd = {
-      id: newId,
-      ...newAutomation,
-      triggerTime: formattedTime,
-      isActive: true,
-      notifyBefore: false,
-      frequency: 'Daily',
-    };
-
-    setAutomations([...automations, automationToAdd]);
-    setAddModalVisible(false);
-    setNewAutomation({
-      name: '',
-      trigger: '',
-      triggerTime: new Date(),
-      triggerValue: '',
-      devices: [],
-      actions: '',
-      actionValue: '',
-    });
-  };
-
- 
   const renderDeviceItem = (device) => (
     <TouchableOpacity
       key={device.id}
@@ -248,77 +298,6 @@ export default function AutomationsScreen() {
       )}
     </TouchableOpacity>
   );
-
-
-
-
-  const renderAddCard = () => {
-    if (!isEditing) return null;
-    
-    return (
-      <TouchableOpacity
-        style={local_styles.addCard}
-        onPress={() => setAddModalVisible(true)}
-      >
-        <Plus size={40} color="#666" />
-        <Text style={local_styles.addCardText}>Add New Automation</Text>
-      </TouchableOpacity>
-    );
-  };
-
-  const renderAutomationItem = ({ item }) => {
-    if (item.isAddCard) {
-      return renderAddCard();
-    }
-
-    return (
-      <View style={local_styles.automationCardContainer}>
-        {isEditing && (
-          <TouchableOpacity
-            style={local_styles.deleteButton}
-            onPress={() => deleteAutomation(item.id)}
-          >
-            <MaterialCommunityIcons name='minus-circle' size={24} color="red" />
-          </TouchableOpacity>
-        )}
-        <TouchableOpacity
-          style={[local_styles.automationCard, !item.isActive && local_styles.inactiveCard]}
-          onPress={() => {
-            if (!isEditing) {
-              setSelectedAutomation(item);
-              setDetailsModalVisible(true);
-            }
-          }}
-        >
-          <View style={local_styles.cardHeader}>
-            {/* {getIcon(item.name)} */}
-            <View style={local_styles.cardTitleContainer}>
-              <Text style={local_styles.cardTitle}>{item.name}</Text>
-              <Text style={local_styles.cardSubtitle}>
-                {item.trigger} • {item.triggerTime}
-              </Text>
-            </View>
-            <Switch
-              value={item.isActive}
-              onValueChange={() => toggleAutomation(item.id)}
-              // trackColor={{ false: '#767577', true: '#4caf50' }}
-              //thumbColor={'#f4f3f4'}
-            />
-          </View>
-          
-          <View style={local_styles.deviceList}>
-            {item.devices.map((device) => (
-              <View key={device.id} style={local_styles.deviceChip}>
-                <Text style={local_styles.deviceChipText}>
-                  {device.name}
-                </Text>
-              </View>
-            ))}
-          </View>
-        </TouchableOpacity>
-      </View>
-    );
-  };
 
   const renderAddModal = () => (
     <Modal
@@ -367,15 +346,59 @@ export default function AutomationsScreen() {
             </View>
 
             {newAutomation.trigger === 'Time of Day' && (
-              <TouchableOpacity
-                style={local_styles.timePickerButton}
-                onPress={() => setShowTimePicker(true)}
-              >
-                <Clock size={20} color="#666" />
-                <Text style={local_styles.timePickerButtonText}>
-                  {formatTime(newAutomation.triggerTime)}
+              <View>
+                <Text style={local_styles.inputLabel}>Time</Text>
+                <View style={local_styles.timeInputContainer}>
+                  <TextInput
+                    style={local_styles.timeInput}
+                    value={newAutomation.timeInput}
+                    onChangeText={(text) => {
+                      if (/^[0-9]{0,2}:[0-9]{0,2}$/.test(text) || /^[0-9]{0,2}$/.test(text)) {
+                        setNewAutomation({ ...newAutomation, timeInput: text });
+                      }
+                    }}
+                    placeholder="00:00"
+                    keyboardType="numbers-and-punctuation"
+                    maxLength={5}
+                  />
+                  
+                  <View style={local_styles.periodSelector}>
+                    <TouchableOpacity
+                      style={[
+                        local_styles.periodOption,
+                        newAutomation.timePeriod === 'AM' && local_styles.periodOptionSelected
+                      ]}
+                      onPress={() => setNewAutomation({ ...newAutomation, timePeriod: 'AM' })}
+                    >
+                      <Text style={[
+                        local_styles.periodOptionText,
+                        newAutomation.timePeriod === 'AM' && local_styles.periodOptionTextSelected
+                      ]}>
+                        AM
+                      </Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity
+                      style={[
+                        local_styles.periodOption,
+                        newAutomation.timePeriod === 'PM' && local_styles.periodOptionSelected
+                      ]}
+                      onPress={() => setNewAutomation({ ...newAutomation, timePeriod: 'PM' })}
+                    >
+                      <Text style={[
+                        local_styles.periodOptionText,
+                        newAutomation.timePeriod === 'PM' && local_styles.periodOptionTextSelected
+                      ]}>
+                        PM
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+
+                <Text style={local_styles.timeHelpText}>
+                  Enter time in 12-hour format (e.g., 09:30)
                 </Text>
-              </TouchableOpacity>
+              </View>
             )}
 
             {(newAutomation.trigger === 'Temperature Above' || newAutomation.trigger === 'Temperature Below') && (
@@ -393,22 +416,6 @@ export default function AutomationsScreen() {
 
             <Text style={local_styles.inputLabel}>Devices</Text>
             <View style={local_styles.deviceSelectionContainer}>
-              {/* {availableDevices.map((device) => (
-                <TouchableOpacity
-                  key={device.id}
-                  style={[
-                    local_styles.deviceSelectionItem,
-                    newAutomation.devices.some(d => d.id === device.id) && local_styles.deviceSelectionItemSelected
-                  ]}
-                  onPress={() => toggleDeviceSelection(device)}
-                >
-                  {getIcon(device.type)}
-                  <Text style={local_styles.deviceSelectionText}>{device.name}</Text>
-                  {newAutomation.devices.some(d => d.id !== device.id) && (
-                    <Check size={20} color="#4CAF50" />
-                  )}
-                </TouchableOpacity>
-              ))} */}
               {availableDevices.map(renderDeviceItem)}
             </View>
 
@@ -459,48 +466,97 @@ export default function AutomationsScreen() {
       </View>
     </Modal>
   );
+
+  const renderAutomationItem = ({ item }) => {
+    if (item.isAddCard) {
+      return (
+        <TouchableOpacity
+          style={local_styles.addCard}
+          onPress={() => setAddModalVisible(true)}
+        >
+          <Plus size={40} color="#666" />
+          <Text style={local_styles.addCardText}>Add New Automation</Text>
+        </TouchableOpacity>
+      );
+    }
+
+    return (
+      <View style={local_styles.automationCardContainer}>
+        {isEditing && (
+          <TouchableOpacity
+            style={local_styles.deleteButton}
+            onPress={() => deleteAutomation(item.id)}
+          >
+            <MaterialCommunityIcons name='minus-circle' size={24} color="red" />
+          </TouchableOpacity>
+        )}
+        <TouchableOpacity
+          style={[local_styles.automationCard, !item.isActive && local_styles.inactiveCard]}
+          onPress={() => {
+            if (!isEditing) {
+              setSelectedAutomation(item);
+              setDetailsModalVisible(true);
+            }
+          }}
+        >
+          <View style={local_styles.cardHeader}>
+            <View style={local_styles.cardTitleContainer}>
+              <Text style={local_styles.cardTitle}>{item.name}</Text>
+              <Text style={local_styles.cardSubtitle}>
+                {item.trigger} • {item.triggerTime}
+              </Text>
+            </View>
+            <Switch
+              value={item.isActive}
+              onValueChange={() => toggleAutomation(item.id)}
+            />
+          </View>
+          
+          <View style={local_styles.deviceList}>
+            {item.devices.map((device) => (
+              <View key={device.id} style={local_styles.deviceChip}>
+                <Text style={local_styles.deviceChipText}>
+                  {device.name}
+                </Text>
+              </View>
+            ))}
+          </View>
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
   const isDesktop = Platform.OS === 'web';
 
   return (
     <View style={[local_styles.container, isDesktop ? local_styles.desktop_container : local_styles.mobile_container]}>
-            <KeyboardAvoidingView
-              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-              keyboardVerticalOffset={Platform.OS === 'ios' ? 70 : 0}
-              style={styles.keyboardAvoidingContainer}
-            >
-
-      <View style={local_styles.header}>
-        <Text style={local_styles.headerText}>Automations</Text>
-        <TouchableOpacity
-          style={local_styles.editButton}
-          onPress={() => setIsEditing(!isEditing)}
-        >
-          <Text style={[local_styles.editButtonText, isEditing && local_styles.activeEditButton]}>
-            {isEditing ? 'Done' : 'Edit'}
-          </Text>
-        </TouchableOpacity>
-      </View>
-      
-      <FlatList
-        data={[...automations, ...(isEditing ? [{ id: 'add-card', isAddCard: true }] : [])]}
-        renderItem={renderAutomationItem}
-        keyExtractor={item => item.id}
-        contentContainerStyle={local_styles.listContainer}
-      />
-
-      {renderAddModal()}
-
-      {showTimePicker && (
-        <DateTimePicker
-          value={newAutomation.triggerTime}
-          mode="time"
-          is24Hour={false}
-          display="spinner"
-          onChange={handleTimeChange}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 70 : 0}
+        style={styles.keyboardAvoidingContainer}
+      >
+        <View style={local_styles.header}>
+          <Text style={local_styles.headerText}>Automations</Text>
+          <TouchableOpacity
+            style={local_styles.editButton}
+            onPress={() => setIsEditing(!isEditing)}
+          >
+            <Text style={[local_styles.editButtonText, isEditing && local_styles.activeEditButton]}>
+              {isEditing ? 'Done' : 'Edit'}
+            </Text>
+          </TouchableOpacity>
+        </View>
+        
+        <FlatList
+          data={[...automations, ...(isEditing ? [{ id: 'add-card', isAddCard: true }] : [])]}
+          renderItem={renderAutomationItem}
+          keyExtractor={item => item.id}
+          contentContainerStyle={local_styles.listContainer}
         />
-      )}
-      <Chatbot />
-      <NavBar />
+
+        {renderAddModal()}
+        <Chatbot />
+        <NavBar />
       </KeyboardAvoidingView>
     </View>
   );
@@ -519,7 +575,6 @@ const local_styles = StyleSheet.create({
   },
   desktop_container: {
     flex: 1,
-    
     marginLeft: 55,
     marginTop: 20,
     paddingLeft: Platform.OS === 'web' ? 70 : 0,
@@ -650,19 +705,55 @@ const local_styles = StyleSheet.create({
   // Keep all other local_styles...
 
 
+  // modalOverlay: {
+  //   flex: 1,
+  //   backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  //   justifyContent: 'center',
+  //   alignItems: 'center',
+  // },
+
   modalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
+    // Add platform-specific padding
+    ...Platform.select({
+      ios: {
+        paddingTop: 20,
+        paddingBottom: 40
+      }
+    })
   },
+  // addModalContainer: {
+  //   backgroundColor: '#fff',
+  //   borderRadius: 20,
+  //   padding: 20,
+  //   width: '90%',
+  //   maxWidth: 500,
+  //   maxHeight: '80%',
+  // },
+
   addModalContainer: {
     backgroundColor: '#fff',
     borderRadius: 20,
     padding: 20,
     width: '90%',
+    
     maxWidth: 500,
-    maxHeight: '80%',
+    maxHeight: Platform.OS === 'ios' ? '85%' : '80%',
+    // Add shadow for iOS
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: {
+          width: 0,
+          height: 2
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 4
+      }
+    })
   },
   modalHeader: {
     flexDirection: 'row',
@@ -676,7 +767,7 @@ const local_styles = StyleSheet.create({
     color: '#333',
   },
   addModalContent: {
-    flex: 1,
+    flexGrow: 1
   },
   inputLabel: {
     fontSize: 16,
@@ -708,7 +799,7 @@ const local_styles = StyleSheet.create({
     marginBottom: 8,
   },
   optionButtonSelected: {
-    backgroundColor: '#FFA500',
+    backgroundColor: '#001322',
   },
   optionButtonText: {
     color: '#666',
@@ -765,7 +856,7 @@ const local_styles = StyleSheet.create({
 
   deviceSelectionItemSelected: {
     backgroundColor: '#f0f8ff',
-    borderColor: '#FFA500',
+    borderColor: '#001322',
   },
   deviceSelectionText: {
     flex: 1,
@@ -808,7 +899,7 @@ const local_styles = StyleSheet.create({
     color: '#666',
   },
   saveButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: '#001322',
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
@@ -820,4 +911,50 @@ const local_styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  // Add these new styles to your local_styles StyleSheet
+timeInputContainer: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  marginTop: 8,
+  marginBottom: 4,
+},
+timeInput: {
+  flex: 1,
+  borderWidth: 1,
+  borderColor: '#ddd',
+  borderRadius: 8,
+  padding: 12,
+  fontSize: 16,
+  marginRight: 8,
+},
+periodSelector: {
+  flexDirection: 'row',
+  borderWidth: 1,
+  borderColor: '#ddd',
+  borderRadius: 8,
+  overflow: 'hidden',
+},
+periodOption: {
+  paddingVertical: 12,
+  paddingHorizontal: 16,
+  backgroundColor: '#f0f0f0',
+},
+periodOptionSelected: {
+  backgroundColor: '#001322',
+},
+periodOptionText: {
+  fontSize: 16,
+  color: '#666',
+  fontWeight: '500',
+},
+periodOptionTextSelected: {
+  color: '#fff',
+  fontWeight: '600',
+},
+timeHelpText: {
+  fontSize: 12,
+  color: '#666',
+  marginTop: 4,
+  fontStyle: 'italic',
+},
 });

@@ -9,6 +9,15 @@ import { auth } from "../../backend/firebaseConfig"; // Ensure this import is pr
 import { signOut } from "firebase/auth"; // Import signOut function
 import Chatbot from './chatbot';
 
+
+
+
+import { LogBox } from 'react-native';
+LogBox.ignoreLogs([
+  "TypeError: genAI.listModels is not a function",
+]);
+
+
 interface FAQItem {
   question: string;
   answer: string;
@@ -574,11 +583,13 @@ const Settings = () => {
       </TouchableOpacity>
       
       <View style={styles.divider} />
-      
-      <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
-        <MaterialCommunityIcons name="logout" size={20} color="#FF3B30" />
-        <Text style={styles.logoutText}>Log out</Text>
-      </TouchableOpacity>
+
+      <Link href="./index" asChild>
+        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+          <MaterialCommunityIcons name="logout" size={20} color="#FF3B30" />
+          <Text style={styles.logoutText}>Log out</Text>
+        </TouchableOpacity>
+      </Link>
     </View>
   );
 

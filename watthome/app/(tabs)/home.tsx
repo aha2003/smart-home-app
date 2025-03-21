@@ -6,6 +6,11 @@ import { Link } from 'expo-router';
 import { styles as fileStyles } from "./LoginStyles";
 import Chatbot from './chatbot';
 
+import { LogBox } from 'react-native';
+LogBox.ignoreLogs([
+  "TypeError: genAI.listModels is not a function",
+]);
+
 
 
 // NavBar Component
@@ -69,13 +74,13 @@ const NavBar = () => {
 // Sample data for users
 const profilePictures = [
   { id: '1', uri: 'https://randomuser.me/api/portraits/women/49.jpg', name: 'Jessica', score: 1734 },
-  { id: '2', uri: 'https://randomuser.me/api/portraits/men/12.jpg', name: 'Arthur' , score: 1269},
-  { id: '3', uri: 'https://randomuser.me/api/portraits/men/43.jpg', name: 'Robert' , score: 1072},
-  { id: '4', uri: 'https://randomuser.me/api/portraits/women/34.jpg', name: 'Delvey' , score: 987},
-  { id: '5', uri: 'https://randomuser.me/api/portraits/men/50.jpg', name: 'Toby' ,score: 845},
-  { id: '6', uri: 'https://randomuser.me/api/portraits/women/62.jpg', name: 'Maria' , score: 764},
-  { id: '7', uri: 'https://randomuser.me/api/portraits/women/57.jpg', name: 'Belle' , score: 623},
-  { id: '8', uri: 'https://randomuser.me/api/portraits/men/68.jpg', name: 'Chris', score: 212 },
+  { id: '2', uri: 'https://randomuser.me/api/portraits/men/66.jpg', name: 'Arthur' , score: 1169},
+  { id: '3', uri: 'https://images.unsplash.com/photo-1611178204388-1deef70ec66a?q=80&w=3164&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D', name: 'Dennis' , score: 1002},
+  { id: '6', uri: 'https://plus.unsplash.com/premium_photo-1675034381764-1069f57774c0?q=80&w=3087&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D', name: 'Maria' , score: 987},
+  { id: '4', uri: 'https://images.unsplash.com/photo-1554342321-0776d282ceac?q=80&w=3087&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D ', name: 'Jenna' , score: 764},
+  { id: '5', uri: 'https://plus.unsplash.com/premium_photo-1672297543351-17987c5c9361?q=80&w=3085&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D', name: 'Alexander' ,score: 805},
+  { id: '7', uri: 'https://plus.unsplash.com/premium_photo-1676486613077-03cf2388f1a0?q=80&w=3087&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D', name: 'Belle' , score: 1223},
+  { id: '8', uri: 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?q=80&w=3164&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D', name: 'Chris', score: 212 },
 ];
 
 // Sample data for rooms
@@ -83,28 +88,55 @@ const rooms = [
   {
     id: '1',
     name: 'Living Room',
-    image: 'https://images.unsplash.com/photo-1618219908412-a29a1bb7b86e?w=400&h=300&fit=crop',
+    image: 'https://images.unsplash.com/photo-1554995207-c18c203602cb?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
     devices: [
-      { id: 'ac1', name: 'Thermostat', type: 'temperature', value: 23, icon: 'thermometer' },
-      { id: 'light1', name: 'Smart Light', type: 'brightness', value: 75, icon: 'lightbulb-outline' }
+      { id: '2', name: 'Thermostat', type: 'temperature', value: 23, icon: 'thermometer' },
+      { id: '1', name: 'Smart Light', type: 'brightness', value: 75, icon: 'lightbulb-outline' }
     ]
   },
   {
     id: '2',
     name: 'Master Bedroom',
-    image: 'https://images.unsplash.com/photo-1616594039964-ae9021a400a0?w=400&h=300&fit=crop',
+    image: 'https://images.unsplash.com/photo-1560185893-a55cbc8c57e8?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
     devices: [
-      { id: 'tv1', name: ' TV', type: 'volume', value: 10, icon: 'television' },
-      { id: 'light2', name: 'Smart Light', type: 'brightness', value: 75, icon: 'lightbulb-outline' }
+      { id: '7', name: ' Thermostat', type: 'temperature', value: 23, icon: 'thermometer' },
+      { id: '5', name: 'Smart Light', type: 'brightness', value: 75, icon: 'lightbulb-outline' }
     ]
   },
   {
     id: '3',
     name: 'Kitchen',
-    image: 'https://images.unsplash.com/photo-1556911220-bff31c812dba?w=400&h=300&fit=crop',
+    image: 'https://images.unsplash.com/photo-1484154218962-a197022b5858?q=80&w=2948&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
     devices: [
-      { id: 'roomba1', name: 'Roomba', type: 'speed', value: 2, options: ['Low', 'Medium', 'High'], icon: 'robot-vacuum' },
-      { id: 'ac2', name: 'Thermostat', type: 'temperature', value: 23, icon: 'thermometer' }
+      { id: '8', name: 'Roomba', type: 'speed', value: 2, options: ['Low', 'Medium', 'High'], icon: 'robot-vacuum' },
+      { id: '10', name: 'Thermostat', type: 'temperature', value: 23, icon: 'thermometer' }
+    ]
+  },
+  {
+    id: '4',
+    name: 'Kids Room',
+    image: 'https://images.unsplash.com/photo-1548096027-926a68d14d95?q=80&w=3080&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+    devices: [
+      { id: '16', name: 'Smart Light', type: 'brightness', value: 75, icon: 'lightbulb-outline' },
+      { id: '15', name: 'Thermostat', type: 'temperature', value: 23, icon: 'thermometer' }
+    ]
+  },
+  {
+    id: '5',
+    name: 'Grandparents Room',
+    image: 'https://images.unsplash.com/photo-1595526114035-0d45ed16cfbf?w=400&h=300&fit=crop',
+    devices: [
+      { id: '14', name: 'Smart Light', type: 'brightness', value: 75, icon: 'lightbulb-outline' },
+      { id: '13', name: 'Thermostat', type: 'temperature', value: 23, icon: 'thermometer' }
+    ]
+  },
+  {
+    id: '6',
+    name: 'Guest Room',
+    image: 'https://plus.unsplash.com/premium_photo-1676320514007-b9a41f2e7266?q=80&w=2940&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+    devices: [
+      { id: '14', name: 'Smart Light', type: 'brightness', value: 75, icon: 'lightbulb-outline' },
+      { id: '10', name: 'Thermostat', type: 'temperature', value: 23, icon: 'thermometer' }
     ]
   },
 ];
@@ -436,9 +468,11 @@ const HomeTest = () => {
   const availableRooms = [
     { id: '1', name: 'Living Room' },
     { id: '2', name: 'Kitchen' },
-    { id: '3', name: 'Master Bedroom' },
+    { id: '3', name: 'Bedroom' },
     { id: '4', name: 'Kids Room' },
-    { id: '5', name: 'Grandparents Room' }
+    { id: '5', name: 'Grandparents Room' },
+    { id: '6', name: 'Guest Room' }
+
   ];
   
   const availableDevices = [
@@ -449,6 +483,7 @@ const HomeTest = () => {
     { id: 'd5', name: 'Roomba', icon: 'robot-vacuum' },
     { id: 'd6', name: 'Washing Machine', icon: 'washing-machine' },
     { id: 'd7', name: 'Pill Dispenser', icon: 'pill' }
+
   ];
   
   // In the HomeTest component, add these state variables
@@ -843,9 +878,9 @@ const handleAddUser = () => {
                 <View style={localStyles.crownContainer}>
                   <MaterialCommunityIcons name="crown" size={24} color="#C0C0C0" />
                 </View>
-                <Image source={{ uri: profilePictures[1].uri }} style={localStyles.secondImage} />
-                <Text style={localStyles.leaderboardName}>{profilePictures[1].name}</Text>
-                <Text style={localStyles.leaderboardPoints}>{profilePictures[1].score} pts</Text>
+                <Image source={{ uri: profilePictures[6].uri }} style={localStyles.secondImage} />
+                <Text style={localStyles.leaderboardName}>{profilePictures[6].name}</Text>
+                <Text style={localStyles.leaderboardPoints}>{profilePictures[6].score} pts</Text>
               </View>
     
               {/* First Place */}
@@ -863,15 +898,15 @@ const handleAddUser = () => {
                   <View style={localStyles.crownContainer}>
                     <MaterialCommunityIcons name="crown" size={24} color="#CD7F32" />
                   </View>
-                  <Image source={{ uri: profilePictures[2].uri }} style={localStyles.thirdImage} />
-                  <Text style={localStyles.leaderboardName}>{profilePictures[2].name}</Text>
-                  <Text style={localStyles.leaderboardPoints}>{profilePictures[2].score} pts</Text>
+                  <Image source={{ uri: profilePictures[1].uri }} style={localStyles.thirdImage} />
+                  <Text style={localStyles.leaderboardName}>{profilePictures[1].name}</Text>
+                  <Text style={localStyles.leaderboardPoints}>{profilePictures[1].score} pts</Text>
                 </View>
               </View>
 
               {/* Other Users (4th and 5th only) */}
               <View style={localStyles.leaderboardList}>
-                {profilePictures.slice(3, 5).map((user, index) => (
+                {profilePictures.slice(2, 4).map((user, index) => (
                   <View key={user.id} style={localStyles.leaderboardListItem}>
                     <View style={localStyles.leaderboardListLeft}>
                       <Text style={localStyles.leaderboardRank}>{index + 4}</Text>
@@ -1604,11 +1639,6 @@ addButtonText: {
   fontSize: 16,
   fontWeight: 'bold',
 },
-
-
-
-
-
   
 });
 
