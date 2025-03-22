@@ -191,7 +191,7 @@ const Chatbot = () => {
                         style={[styles.chatContainer, { transform: [{ translateX: slideAnim }] }]}
                     >
                         <View style={styles.header}>
-                            <Text style={styles.headerText}>Smart Home Chatbot</Text>
+                            <Text style={styles.headerText}>Watt-E</Text>
                             <TouchableOpacity onPress={toggleChat}>
                                 <Ionicons name="close" size={24} color="black" />
                             </TouchableOpacity>
