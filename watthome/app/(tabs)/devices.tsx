@@ -135,6 +135,32 @@ const DevicesPage = () => {
     totalEnergy: number;
   } }>({});
 
+  // Add these functions to your DevicesPage component
+
+// Function to save device groups to AsyncStorage
+const saveDeviceGroups = async (groups: DeviceGroup[]) => {
+  try {
+    await AsyncStorage.setItem('deviceGroups', JSON.stringify(groups));
+    console.log('Device groups saved to AsyncStorage:', groups);
+  } catch (error) {
+    console.error('Error saving device groups to AsyncStorage:', error);
+  }
+};
+
+// Function to load device groups from AsyncStorage
+const loadDeviceGroups = async () => {
+  try {
+    const storedGroups = await AsyncStorage.getItem('deviceGroups');
+    if (storedGroups) {
+      const parsedGroups = JSON.parse(storedGroups);
+      console.log('Loaded device groups from AsyncStorage:', parsedGroups);
+      setDeviceGroups(parsedGroups);
+    }
+  } catch (error) {
+    console.error('Error loading device groups from AsyncStorage:', error);
+  }
+};
+
   const defaultEnergyUsage: Record<DeviceType, number> = {
     'Smart Light': 10,
     'Thermostat': 50,
@@ -167,6 +193,7 @@ const DevicesPage = () => {
         // Transform devices to ensure they have the correct icon based on deviceType
         devicesFromDb = devicesFromDb.map(device => ({
           ...device,
+          name: device.name || device.deviceType || 'Unknown Device',
           icon: device.deviceType ? getIconForType(device.deviceType as DeviceType) : 'lightbulb-outline'
         }));
         
@@ -369,7 +396,9 @@ const DevicesPage = () => {
       devices: selectedDevicesForGroup
     };
 
-    setDeviceGroups([...deviceGroups, newGroup]);
+    const updatedGroups = [...deviceGroups, newGroup];
+    setDeviceGroups(updatedGroups);
+    saveDeviceGroups(updatedGroups);
     setNewGroupName('');
     setSelectedDevicesForGroup([]);
     setShowAddGroupForm(false);
@@ -377,12 +406,14 @@ const DevicesPage = () => {
 
   // Function to remove a device group
   const removeGroup = (groupId: number) => {
-    setDeviceGroups(deviceGroups.filter(group => group.id !== groupId));
+    const updatedGroups = deviceGroups.filter(group => group.id !== groupId);
+    setDeviceGroups(updatedGroups);
+    saveDeviceGroups(updatedGroups); // Save to AsyncStorage
   };
 
   // Function to remove a device from a group
   const removeDeviceFromGroup = (groupId: number, deviceId: number) => {
-    setDeviceGroups(deviceGroups.map(group => {
+    const updatedGroups = deviceGroups.map(group => {
       if (group.id === groupId) {
         return {
           ...group,
@@ -390,7 +421,9 @@ const DevicesPage = () => {
         };
       }
       return group;
-    }));
+    });
+    setDeviceGroups(updatedGroups);
+    saveDeviceGroups(updatedGroups);
   };
 
   const renderDeviceGroups = () => (
@@ -523,15 +556,21 @@ const DevicesPage = () => {
                   {!editMode && (
                     <Switch value={deviceStates[device.id]} onValueChange={() => toggleSwitch(device.id)} />
                   )}
-                  <Text style={styles.deviceLocation}>{device.location}</Text>
+
+                  <View style={localStyles.deviceFooter}>
+
+                  <Text style={localStyles.deviceLocation}>{device.location}
+                  </Text>
 
                   {deviceStates[device.id] && !editMode && (
-                    <View style={localStyles.energyBadge}>
-                      <Text style={localStyles.energyBadgeText}>
+                    
+                      <Text style={localStyles.deviceEnergy}>
                         {defaultEnergyUsage[device.deviceType] || 10} W/h
                       </Text>
-                    </View>
                   )}
+
+                  
+                  </View>
                 </View>
               ))}
             </View>
@@ -587,7 +626,7 @@ const DevicesPage = () => {
               <MaterialCommunityIcons 
                 name={getIconForType(device.deviceType)} 
                 size={24} 
-                color={selectedDevicesForGroup.includes(device.id) ? "#fff" : "#001322"} 
+                color={selectedDevicesForGroup.includes(device.id) ? "#001322" : "#ffffff"} 
               />
               <Text style={[
                 styles.deviceOptionText,
@@ -639,14 +678,17 @@ const DevicesPage = () => {
       Alert.alert('Error', 'Please enter a location for the device');
       return;
     }
+
+    const deviceType = newDeviceType as DeviceType;
+    const deviceName = newDeviceName.trim() || deviceType;
   
     const energyUsage = defaultEnergyUsage[newDeviceType as DeviceType] || 10; // Default to 10 if unknown type
-    const deviceType = newDeviceType as DeviceType;
+  
   
     console.log(`Adding device for user: ${userId}, device type: ${deviceType}, location: ${newDeviceLocation}`);
     
     // Initial state is always off (false)
-    const response = await addDevice(userId, newDeviceName || deviceType, deviceType, energyUsage, newDeviceLocation, false);
+    const response = await addDevice(userId, deviceName, deviceType, energyUsage, newDeviceLocation, false);
     console.log('Add Device Response:', response);
   
     if (response.success) {
@@ -654,7 +696,7 @@ const DevicesPage = () => {
       const newDeviceId = Number(response.id);
       setDevices([...devices, { 
         id: newDeviceId,
-        name: newDeviceName || deviceType,
+        name: deviceName,
         location: newDeviceLocation,
         deviceType: deviceType,
         icon: getIconForType(deviceType)
@@ -917,6 +959,7 @@ const DevicesPage = () => {
       // Transform devices
       devicesFromDb = devicesFromDb.map(device => ({
         ...device,
+        name: device.name || device.deviceType || 'Unknown Device',
         icon: device.deviceType ? getIconForType(device.deviceType as DeviceType) : 'lightbulb-outline'
       }));
       
@@ -941,8 +984,7 @@ const DevicesPage = () => {
     for (const device of activeDevices) {
       try {
         const stats = await getDeviceEnergyStats(device.id.toString());
-        if (stats.success) {
-          setDeviceUsageStats(prev => ({
+        if (stats.success) {setDeviceUsageStats(prev => ({
             ...prev,
             [device.id]: stats.stats
           }));
@@ -972,6 +1014,11 @@ const DevicesPage = () => {
     
     return `${hours}h ${minutes}m ${secs}s`;
   };
+
+  useEffect(() => {
+    loadDeviceGroups();
+  }
+  , []);
 
   return (
     <View style={[styles.dev_container, isDesktop ? styles.desktopContainer : styles.mobileContainer]}>
@@ -1134,15 +1181,18 @@ const DevicesPage = () => {
                             onValueChange={() => toggleSwitch(device.id)}
                           />
                         )}
-                        <Text style={styles.deviceLocation}>{device.location}</Text>
+                        <View style={localStyles.deviceFooter}>
+                        <Text style={localStyles.deviceLocation}>{device.location}
+                        </Text>
 
                         {deviceStates[device.id] && !editMode && (
-                          <View style={localStyles.energyBadge}>
-                            <Text style={localStyles.energyBadgeText}>
+                          
+                            <Text style={localStyles.deviceEnergy}>
                               {defaultEnergyUsage[device.deviceType] || 10} W/h
                             </Text>
-                          </View>
                         )}
+                        
+                        </View>
                       </View>
                     ))}
                     
@@ -1175,7 +1225,7 @@ const DevicesPage = () => {
                   <Text style={styles.formLabel}>Device Type</Text>
                   <View style={styles.pickerContainer}>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                      {['Smart Light', 'Thermostat', 'CCTV', 'TV', 'Roomba', 'Washing Machine'].map((type) => (
+                      {['Smart Light', 'Thermostat', 'CCTV', 'TV', 'Roomba', 'Washing Machine', 'Pill Dispenser', 'Heart Rate Monitor'].map((type) => (
                         <TouchableOpacity 
                           key={type}
                           style={[
@@ -1257,7 +1307,7 @@ const localStyles = StyleSheet.create({
     height: 200,
   },
   loadingText: {
-    color: "#fffcf2",
+    color: "#001322",
     fontSize: 16,
     fontStyle: 'italic'
   },
@@ -1276,19 +1326,43 @@ const localStyles = StyleSheet.create({
     fontSize: 12,
     fontWeight: 'bold',
   },
-  energyBadge: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    backgroundColor: 'rgba(0, 19, 34, 0.7)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
+  // energyBadge: {
+  //   position: 'absolute',
+ 
+  //   // right: 10,
+  //   // bottom: 10,
+  //   backgroundColor: 'rgba(0, 19, 34, 0.7)',
+  //   // paddingHorizontal: 8,
+  //   // paddingVertical: 4,
+  //   borderRadius: 12,
+  //   marginTop: 5,
+  // },
   energyBadgeText: {
-    color: "#4caf50",
     fontSize: 12,
+    color: 'green',
+    marginTop: 5,
+  },
+  deviceFooter: {
+    flexDirection: 'row', // Align items in a row
+    justifyContent: 'space-between', // Space between location and energy
+    alignItems: 'center', // Align items vertically
+    marginTop: 10, // Add some spacing from the top
+    width: '100%', // Ensure it spans the full width of the card
+    padding: 5, // Add some padding to the footer
+  },
+  deviceLocation: {
+    fontSize: 14,
+    color: 'white', // Keep the location text white
     fontWeight: 'bold',
+    paddingRight: 5,
+    alignContent: 'center',
+    //paddingLeft: 50,
+  },
+  deviceEnergy: {
+    fontSize: 14,
+    color: 'green', // Set the energy text to green
+    fontWeight: 'bold',
+    marginRight: 10, // Add some spacing from the location text
   },
 });
 
