@@ -135,6 +135,32 @@ const DevicesPage = () => {
     totalEnergy: number;
   } }>({});
 
+  // Add these functions to your DevicesPage component
+
+// Function to save device groups to AsyncStorage
+const saveDeviceGroups = async (groups: DeviceGroup[]) => {
+  try {
+    await AsyncStorage.setItem('deviceGroups', JSON.stringify(groups));
+    console.log('Device groups saved to AsyncStorage:', groups);
+  } catch (error) {
+    console.error('Error saving device groups to AsyncStorage:', error);
+  }
+};
+
+// Function to load device groups from AsyncStorage
+const loadDeviceGroups = async () => {
+  try {
+    const storedGroups = await AsyncStorage.getItem('deviceGroups');
+    if (storedGroups) {
+      const parsedGroups = JSON.parse(storedGroups);
+      console.log('Loaded device groups from AsyncStorage:', parsedGroups);
+      setDeviceGroups(parsedGroups);
+    }
+  } catch (error) {
+    console.error('Error loading device groups from AsyncStorage:', error);
+  }
+};
+
   const defaultEnergyUsage: Record<DeviceType, number> = {
     'Smart Light': 10,
     'Thermostat': 50,
@@ -151,7 +177,6 @@ const DevicesPage = () => {
     // This function will fetch and setup devices when we have a user
     const setupUserDevices = async (userId: string) => {
       try {
-        setIsLoading(true); // Set loading state
         console.log("Fetching devices for user:", userId);
         let devicesFromDb = await getUserDevices(userId);
         
@@ -162,62 +187,24 @@ const DevicesPage = () => {
         if (!devicesFromDb || devicesFromDb.length === 0) {
           console.log("No devices found for user");
           setDevices([]);
-          setDeviceStates({});
-          setIsLoading(false);
           return;
         }
         
         // Transform devices to ensure they have the correct icon based on deviceType
         devicesFromDb = devicesFromDb.map(device => ({
           ...device,
+          name: device.name || device.deviceType || 'Unknown Device',
           icon: device.deviceType ? getIconForType(device.deviceType as DeviceType) : 'lightbulb-outline'
         }));
         
         console.log("Transformed devices:", devicesFromDb);
         setDevices(devicesFromDb);
         
-        // Initialize device states from the isOn field of each device
-        const initialDeviceStates: { [key: number]: boolean } = {};
-        
-        // First, set a default state for all devices (false/off)
-        devicesFromDb.forEach(device => {
-          initialDeviceStates[Number(device.id)] = false;
-        });
-        
-        // Then, check device's isOn field and update accordingly
-        devicesFromDb.forEach(device => {
-          // Ensure we're using the correct ID type and properly converting isOn to boolean
-          const deviceId = Number(device.id);
-          const isOn = device.isOn === true || device.isOn === "true";
-          
-          initialDeviceStates[deviceId] = isOn;
-          console.log(`Setting device ${deviceId} state to ${isOn} from device data (isOn=${device.isOn}, type=${typeof device.isOn})`);
-        });
-        
-        console.log("Final initial device states to set:", initialDeviceStates);
-        setDeviceStates(initialDeviceStates);
-        
-        // Also save these states to AsyncStorage for backup
-        try {
-          await AsyncStorage.setItem('deviceStates', JSON.stringify(initialDeviceStates));
-        } catch (error) {
-          console.error("Error saving device states to AsyncStorage:", error);
-        }
-        
-        // Load device settings for all devices
-        await loadDeviceSettings();
-        
-        // If any devices are on, update their stats immediately
-        const activeDevices = devicesFromDb.filter(device => initialDeviceStates[Number(device.id)]);
-        if (activeDevices.length > 0) {
-          console.log("Found active devices, updating stats:", activeDevices.map(d => d.id));
-          await updateDeviceStats();
-        }
+        // Load device states from Firestore (make sure this happens after devices are loaded)
+        await loadDeviceStates();
       } catch (error) {
         console.error("Error loading devices:", error);
         Alert.alert("Error", "Failed to load your devices. Please try again.");
-      } finally {
-        setIsLoading(false); // Ensure loading state is cleared
       }
     };
     
@@ -225,12 +212,12 @@ const DevicesPage = () => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         setUserId(user.uid);
+        
         // Call our function to set up devices for this user
         await setupUserDevices(user.uid);
       } else {
         setUserId(null);
         setDevices([]);
-        setIsLoading(false); // Clear loading state when user is not logged in
       }
     });
     
@@ -242,78 +229,36 @@ const DevicesPage = () => {
     }
 
     return () => unsubscribe();
-  }, []); // Empty dependency array means this runs once on mount
+  }, []);
 
+  // Modify the loadDeviceStates function to load from Firestore instead of just AsyncStorage
   const loadDeviceStates = async () => {
     try {
       setIsLoading(true); // Set loading to true at the start
       
-      console.log("Loading device states...");
-      
-      // Initialize device states as an empty object
-      let newDeviceStates: { [key: number]: boolean } = {};
-      
       // First load device states from Firestore
       if (userId) {
-        try {
-          const response = await getUserDeviceStates(userId);
-          console.log("Raw response from Firestore:", response);
-          
-          if (response && typeof response === 'object' && 'deviceStates' in response) {
-            const firestoreStates = response.deviceStates;
-            console.log("Loaded device states from Firestore:", firestoreStates);
-            
-            // Convert string IDs to numbers and ensure boolean values
-            Object.entries(firestoreStates).forEach(([id, state]) => {
-              const deviceId = Number(id);
-              newDeviceStates[deviceId] = Boolean(state);
-              console.log(`Setting device ${deviceId} state to ${state} from Firestore`);
-            });
-          } else {
-            console.log("No device states found in Firestore or invalid format");
-          }
-        } catch (firestoreError) {
-          console.error("Error loading states from Firestore:", firestoreError);
-        }
-      }
-      
-      // Optionally load from AsyncStorage as a fallback
-      try {
-        const storedDeviceStates = await AsyncStorage.getItem('deviceStates');
-        if (storedDeviceStates) {
-          const parsedStates = JSON.parse(storedDeviceStates);
-          console.log("Loaded device states from AsyncStorage:", parsedStates);
-          
-          // Convert string IDs to numbers and ensure boolean values
-          // Only update states that haven't been set from Firestore
-          Object.entries(parsedStates).forEach(([id, state]) => {
-            const deviceId = Number(id);
-            if (!(deviceId in newDeviceStates)) {
-              newDeviceStates[deviceId] = Boolean(state);
-              console.log(`Setting device ${deviceId} state to ${state} from AsyncStorage (Firestore data not available)`);
-            }
-          });
+        const response = await getUserDeviceStates(userId);
+        if (response.success && response.deviceStates) {
+          console.log("Loaded device states from Firestore:", response.deviceStates);
+          // Type assertion to ensure empty object is accepted
+          setDeviceStates(response.deviceStates as { [key: number]: boolean });
         } else {
-          console.log("No device states found in AsyncStorage");
+          console.error("Error loading device states from Firestore:", response.error);
         }
-      } catch (asyncStorageError) {
-        console.error("Error loading states from AsyncStorage:", asyncStorageError);
+        
+        // Now load device settings
+        await loadDeviceSettings();
       }
       
-      // Ensure all devices have a state (default to false if not set)
-      if (devices && devices.length > 0) {
-        devices.forEach(device => {
-          if (!(device.id in newDeviceStates)) {
-            newDeviceStates[device.id] = false;
-            console.log(`Setting default state for device ${device.id} to false (no saved state found)`);
-          }
-        });
-      } else {
-        console.log("No devices available to ensure states");
+      // Optionally load from AsyncStorage as a fallback or to override
+      const storedDeviceStates = await AsyncStorage.getItem('deviceStates');
+      if (storedDeviceStates) {
+        const parsedStates = JSON.parse(storedDeviceStates);
+        console.log("Loaded device states from AsyncStorage:", parsedStates);
+        // Merge with existing states
+        setDeviceStates(prev => ({...prev, ...parsedStates}));
       }
-      
-      console.log("Final device states to set:", newDeviceStates);
-      setDeviceStates(newDeviceStates);
       
       setIsLoading(false); // Set loading to false when done
     } catch (error) {
@@ -451,7 +396,9 @@ const DevicesPage = () => {
       devices: selectedDevicesForGroup
     };
 
-    setDeviceGroups([...deviceGroups, newGroup]);
+    const updatedGroups = [...deviceGroups, newGroup];
+    setDeviceGroups(updatedGroups);
+    saveDeviceGroups(updatedGroups);
     setNewGroupName('');
     setSelectedDevicesForGroup([]);
     setShowAddGroupForm(false);
@@ -459,12 +406,14 @@ const DevicesPage = () => {
 
   // Function to remove a device group
   const removeGroup = (groupId: number) => {
-    setDeviceGroups(deviceGroups.filter(group => group.id !== groupId));
+    const updatedGroups = deviceGroups.filter(group => group.id !== groupId);
+    setDeviceGroups(updatedGroups);
+    saveDeviceGroups(updatedGroups); // Save to AsyncStorage
   };
 
   // Function to remove a device from a group
   const removeDeviceFromGroup = (groupId: number, deviceId: number) => {
-    setDeviceGroups(deviceGroups.map(group => {
+    const updatedGroups = deviceGroups.map(group => {
       if (group.id === groupId) {
         return {
           ...group,
@@ -472,7 +421,9 @@ const DevicesPage = () => {
         };
       }
       return group;
-    }));
+    });
+    setDeviceGroups(updatedGroups);
+    saveDeviceGroups(updatedGroups);
   };
 
   const renderDeviceGroups = () => (
@@ -605,15 +556,21 @@ const DevicesPage = () => {
                   {!editMode && (
                     <Switch value={deviceStates[device.id]} onValueChange={() => toggleSwitch(device.id)} />
                   )}
-                  <Text style={styles.deviceLocation}>{device.location}</Text>
+
+                  <View style={localStyles.deviceFooter}>
+
+                  <Text style={localStyles.deviceLocation}>{device.location}
+                  </Text>
 
                   {deviceStates[device.id] && !editMode && (
-                    <View style={localStyles.energyBadge}>
-                      <Text style={localStyles.energyBadgeText}>
+                    
+                      <Text style={localStyles.deviceEnergy}>
                         {defaultEnergyUsage[device.deviceType] || 10} W/h
                       </Text>
-                    </View>
                   )}
+
+                  
+                  </View>
                 </View>
               ))}
             </View>
@@ -669,7 +626,7 @@ const DevicesPage = () => {
               <MaterialCommunityIcons 
                 name={getIconForType(device.deviceType)} 
                 size={24} 
-                color={selectedDevicesForGroup.includes(device.id) ? "#fff" : "#001322"} 
+                color={selectedDevicesForGroup.includes(device.id) ? "#001322" : "#ffffff"} 
               />
               <Text style={[
                 styles.deviceOptionText,
@@ -721,14 +678,17 @@ const DevicesPage = () => {
       Alert.alert('Error', 'Please enter a location for the device');
       return;
     }
+
+    const deviceType = newDeviceType as DeviceType;
+    const deviceName = newDeviceName.trim() || deviceType;
   
     const energyUsage = defaultEnergyUsage[newDeviceType as DeviceType] || 10; // Default to 10 if unknown type
-    const deviceType = newDeviceType as DeviceType;
+  
   
     console.log(`Adding device for user: ${userId}, device type: ${deviceType}, location: ${newDeviceLocation}`);
     
     // Initial state is always off (false)
-    const response = await addDevice(userId, newDeviceName || deviceType, deviceType, energyUsage, newDeviceLocation, false);
+    const response = await addDevice(userId, deviceName, deviceType, energyUsage, newDeviceLocation, false);
     console.log('Add Device Response:', response);
   
     if (response.success) {
@@ -736,7 +696,7 @@ const DevicesPage = () => {
       const newDeviceId = Number(response.id);
       setDevices([...devices, { 
         id: newDeviceId,
-        name: newDeviceName || deviceType,
+        name: deviceName,
         location: newDeviceLocation,
         deviceType: deviceType,
         icon: getIconForType(deviceType)
@@ -756,49 +716,36 @@ const DevicesPage = () => {
 
   // Update the toggleSwitch function to save state to Firestore as well
   const toggleSwitch = async (id: number) => {
-    try {
-        console.log(`Toggling device ${id} from ${deviceStates[id]} to ${!deviceStates[id]}`);
-        
-        // Create a copy of the current state
-        const newState = { ...deviceStates };
-        
-        // Update only the specific device's state
-        newState[id] = !newState[id];
-        
-        // Update local state with the new copy
-        setDeviceStates(newState);
-        
-        // Save to AsyncStorage as backup
-        try {
-            await AsyncStorage.setItem('deviceStates', JSON.stringify(newState));
-        } catch (storageError) {
-            console.error('Error saving device states to AsyncStorage:', storageError);
-        }
-        
-        // Save to Firestore
-        if (userId) {
-            console.log(`Saving device ${id} state to Firestore: ${newState[id]}`);
-            const response = await updateDeviceState(id.toString(), newState[id]);
-            
-            if (!response.success) {
-                console.error('Error saving device state to Firestore:', response.error);
-                // Revert local state on error
-                setDeviceStates(prev => ({ ...prev, [id]: !newState[id] })); // Revert to previous state
+    setDeviceStates((prev) => {
+      const newState = { ...prev, [id]: !prev[id] };
+      
+      // Save to Firestore
+      if (userId) {
+        updateDeviceState(id.toString(), newState[id])
+          .then(response => {
+            if ('success' in response && !response.success && 'error' in response) {
+              console.error('Error saving device state to Firestore:', response.error);
             } else {
-                console.log(`Device ${id} state updated in Firestore to ${newState[id]}`);
+              console.log(`Device ${id} state updated in Firestore to ${newState[id]}`);
             }
+          })
+          .catch(error => {
+            console.error('Exception saving device state to Firestore:', error);
+          });
+      }
 
-        }
+      // Save to AsyncStorage as backup
+      AsyncStorage.setItem('deviceStates', JSON.stringify(newState)).catch((error) => {
+        console.error('Error saving device states to AsyncStorage:', error);
+      });
 
-        // If this is the washing machine and we're turning it on, reset the timer
-        if (id === WASHING_MACHINE_ID && !deviceStates[id]) {
-            setTimeLeft((prevTime) => ({ ...prevTime, [id]: 1200 })); // 20 minutes
-        }
-    } catch (error) {
-        console.error('Error in toggleSwitch:', error);
-        // Revert local state on error
-        setDeviceStates(prev => ({ ...prev, [id]: !newState[id] })); // Revert to previous state
-    }
+      // If this is the washing machine and we're turning it on, reset the timer
+      if (id === WASHING_MACHINE_ID && newState[id]) {
+        setTimeLeft((prevTime) => ({ ...prevTime, [id]: 1200 })); // 20 minutes
+      }
+
+      return newState;
+    });
   };
 
   // Update the temperature functions to save to Firestore
@@ -1005,67 +952,21 @@ const DevicesPage = () => {
     
     try {
       setIsLoading(true); // Set loading state
-      console.log("Refreshing devices for user:", userId);
       
       // Fetch the devices
       let devicesFromDb = await getUserDevices(userId);
-      console.log("Devices fetched from database:", devicesFromDb);
-      
-      // Check if we got any devices
-      if (!devicesFromDb || devicesFromDb.length === 0) {
-        console.log("No devices found during refresh");
-        setDevices([]);
-        setDeviceStates({});
-        setIsLoading(false);
-        Alert.alert('Info', 'No devices found for your account.');
-        return;
-      }
       
       // Transform devices
       devicesFromDb = devicesFromDb.map(device => ({
         ...device,
+        name: device.name || device.deviceType || 'Unknown Device',
         icon: device.deviceType ? getIconForType(device.deviceType as DeviceType) : 'lightbulb-outline'
       }));
       
       setDevices(devicesFromDb);
       
-      // Initialize device states from the isOn field of each device
-      const refreshedDeviceStates: { [key: number]: boolean } = {};
-      
-      // First set defaults for all devices
-      devicesFromDb.forEach(device => {
-        refreshedDeviceStates[Number(device.id)] = false;
-      });
-      
-      // Then update with actual isOn values
-      devicesFromDb.forEach(device => {
-        // Ensure we're using the correct ID type and properly handling isOn
-        const deviceId = Number(device.id);
-        const isOn = device.isOn === true || device.isOn === "true";
-        
-        refreshedDeviceStates[deviceId] = isOn;
-        console.log(`Refreshing device ${deviceId} state to ${isOn} from isOn=${device.isOn}`);
-      });
-      
-      console.log("Setting refreshed device states:", refreshedDeviceStates);
-      setDeviceStates(refreshedDeviceStates);
-      
-      // Also update AsyncStorage
-      try {
-        await AsyncStorage.setItem('deviceStates', JSON.stringify(refreshedDeviceStates));
-      } catch (error) {
-        console.error("Error saving refreshed device states to AsyncStorage:", error);
-      }
-      
-      // Load device settings for all devices
-      await loadDeviceSettings();
-      
-      // If any devices are on, update their stats immediately
-      const activeDevices = devicesFromDb.filter(device => refreshedDeviceStates[Number(device.id)]);
-      if (activeDevices.length > 0) {
-        console.log("Found active devices after refresh, updating stats:", activeDevices.map(d => d.id));
-        await updateDeviceStats();
-      }
+      // Load device states and settings from Firestore
+      await loadDeviceStates(); // This now also loads settings
       
       setIsLoading(false); // Clear loading state
       Alert.alert('Success', 'Devices and settings refreshed successfully');
@@ -1083,8 +984,7 @@ const DevicesPage = () => {
     for (const device of activeDevices) {
       try {
         const stats = await getDeviceEnergyStats(device.id.toString());
-        if (stats.success) {
-          setDeviceUsageStats(prev => ({
+        if (stats.success) {setDeviceUsageStats(prev => ({
             ...prev,
             [device.id]: stats.stats
           }));
@@ -1114,6 +1014,11 @@ const DevicesPage = () => {
     
     return `${hours}h ${minutes}m ${secs}s`;
   };
+
+  useEffect(() => {
+    loadDeviceGroups();
+  }
+  , []);
 
   return (
     <View style={[styles.dev_container, isDesktop ? styles.desktopContainer : styles.mobileContainer]}>
@@ -1276,15 +1181,18 @@ const DevicesPage = () => {
                             onValueChange={() => toggleSwitch(device.id)}
                           />
                         )}
-                        <Text style={styles.deviceLocation}>{device.location}</Text>
+                        <View style={localStyles.deviceFooter}>
+                        <Text style={localStyles.deviceLocation}>{device.location}
+                        </Text>
 
                         {deviceStates[device.id] && !editMode && (
-                          <View style={localStyles.energyBadge}>
-                            <Text style={localStyles.energyBadgeText}>
+                          
+                            <Text style={localStyles.deviceEnergy}>
                               {defaultEnergyUsage[device.deviceType] || 10} W/h
                             </Text>
-                          </View>
                         )}
+                        
+                        </View>
                       </View>
                     ))}
                     
@@ -1317,7 +1225,7 @@ const DevicesPage = () => {
                   <Text style={styles.formLabel}>Device Type</Text>
                   <View style={styles.pickerContainer}>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                      {['Smart Light', 'Thermostat', 'CCTV', 'TV', 'Roomba', 'Washing Machine'].map((type) => (
+                      {['Smart Light', 'Thermostat', 'CCTV', 'TV', 'Roomba', 'Washing Machine', 'Pill Dispenser', 'Heart Rate Monitor'].map((type) => (
                         <TouchableOpacity 
                           key={type}
                           style={[
@@ -1399,7 +1307,7 @@ const localStyles = StyleSheet.create({
     height: 200,
   },
   loadingText: {
-    color: "#fffcf2",
+    color: "#001322",
     fontSize: 16,
     fontStyle: 'italic'
   },
@@ -1418,19 +1326,43 @@ const localStyles = StyleSheet.create({
     fontSize: 12,
     fontWeight: 'bold',
   },
-  energyBadge: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
-    backgroundColor: 'rgba(0, 19, 34, 0.7)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
+  // energyBadge: {
+  //   position: 'absolute',
+ 
+  //   // right: 10,
+  //   // bottom: 10,
+  //   backgroundColor: 'rgba(0, 19, 34, 0.7)',
+  //   // paddingHorizontal: 8,
+  //   // paddingVertical: 4,
+  //   borderRadius: 12,
+  //   marginTop: 5,
+  // },
   energyBadgeText: {
-    color: "#4caf50",
     fontSize: 12,
+    color: 'green',
+    marginTop: 5,
+  },
+  deviceFooter: {
+    flexDirection: 'row', // Align items in a row
+    justifyContent: 'space-between', // Space between location and energy
+    alignItems: 'center', // Align items vertically
+    marginTop: 10, // Add some spacing from the top
+    width: '100%', // Ensure it spans the full width of the card
+    padding: 5, // Add some padding to the footer
+  },
+  deviceLocation: {
+    fontSize: 14,
+    color: 'white', // Keep the location text white
     fontWeight: 'bold',
+    paddingRight: 5,
+    alignContent: 'center',
+    //paddingLeft: 50,
+  },
+  deviceEnergy: {
+    fontSize: 14,
+    color: 'green', // Set the energy text to green
+    fontWeight: 'bold',
+    marginRight: 10, // Add some spacing from the location text
   },
 });
 
