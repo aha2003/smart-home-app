@@ -622,7 +622,7 @@ const DeviceUsage: React.FC<DeviceUsageProps> = ({ selectedTime }) => {
 
   return (
     <View style={chart_style}>
-      <Text style={styles.cardTitle}>Individual Device Usage</Text>
+      <Text style={styles.cardTitle}>Individual Device Usage - Yesterday</Text>
       <StackedBarChart
         data={chartData}
         width={screenWidth - 40}
