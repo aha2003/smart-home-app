@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { View, StyleSheet, Platform, TouchableOpacity, Text, Dimensions, ScrollView, useWindowDimensions, KeyboardAvoidingView } from 'react-native';
+import React, { useState, useRef, useEffect } from 'react';
+import { View, StyleSheet, Platform, TouchableOpacity, Text, Dimensions, ScrollView, useWindowDimensions, KeyboardAvoidingView, ActivityIndicator } from 'react-native';
 import { Link } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { BarChart as RNBarChart } from 'react-native-chart-kit';
@@ -7,20 +7,223 @@ import { StackedBarChart } from 'react-native-chart-kit';
 import { styles } from "./LoginStyles";
 import Chatbot from './chatbot';
 import RNHTMLtoPDF from 'react-native-html-to-pdf';
-
-
-
-
-
+import { getAuth } from "firebase/auth";
+import { collection, getDocs, getFirestore } from 'firebase/firestore';
 
 import { LogBox } from 'react-native';
 LogBox.ignoreLogs([
   "TypeError: genAI.listModels is not a function",
 ]);
 
+// Add DeviceTotalEnergyChart component
+type DeviceData = {
+  id: string;
+  name: string;
+  totalEnergy: number;
+  deviceType: string;
+};
 
-
-
+const DeviceTotalEnergyChart: React.FC = () => {
+  const [deviceData, setDeviceData] = useState<DeviceData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [refreshTrigger, setRefreshTrigger] = useState(0); // Added to trigger refreshes
+  const { width } = useWindowDimensions();
+  const chart_style = width > 768 ? styles.desktop_chart_style : styles.mobile_chart_style; 
+  
+  // Function to fetch device energy data
+  const fetchDeviceEnergy = async () => {
+    console.log("Fetching device energy data...");
+    setIsLoading(true);
+    try {
+      const auth = getAuth();
+      const user = auth.currentUser;
+      
+      if (!user) {
+        console.log("No user logged in");
+        setIsLoading(false);
+        return;
+      }
+      
+      const firestore = getFirestore();
+      const deviceCollectionRef = collection(firestore, "devices");
+      const querySnapshot = await getDocs(deviceCollectionRef);
+      
+      const devices: DeviceData[] = [];
+      querySnapshot.forEach((doc) => {
+        const data = doc.data();
+        // Filter to include only devices belonging to the current user
+        if (data.userId === user.uid) {
+          console.log(`Device ${doc.id} energy: ${data.totalEnergy || 0}`);
+          devices.push({
+            id: doc.id,
+            name: data.name || `Device ${doc.id}`,
+            totalEnergy: data.totalEnergy || 0,
+            deviceType: data.deviceType || 'Unknown'
+          });
+        }
+      });
+      
+      if (devices.length === 0) {
+        console.log("No devices found for user");
+      }
+      
+      // Sort devices by energy consumption (highest first)
+      devices.sort((a, b) => b.totalEnergy - a.totalEnergy);
+      setDeviceData(devices);
+    } catch (error) {
+      console.error("Error fetching device energy data:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // Fetch data initially and on user change
+  useEffect(() => {
+    const auth = getAuth();
+    
+    // Listen for auth state changes and fetch data when user is available
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        fetchDeviceEnergy();
+      } else {
+        setDeviceData([]);
+        setIsLoading(false);
+      }
+    });
+    
+    return () => unsubscribe();
+  }, []);
+  
+  // Refresh data periodically and when refreshTrigger changes
+  useEffect(() => {
+    fetchDeviceEnergy();
+    
+    // Set up interval to refresh data every minute (60000ms)
+    const interval = setInterval(() => {
+      console.log("Auto-refreshing device energy data");
+      fetchDeviceEnergy();
+    }, 60000);
+    
+    return () => clearInterval(interval);
+  }, [refreshTrigger]);
+  
+  // Function to manually refresh data
+  const handleRefresh = () => {
+    console.log("Manual refresh triggered");
+    setRefreshTrigger(prev => prev + 1);
+  };
+  
+  if (isLoading && deviceData.length === 0) {
+    return (
+      <View style={[chart_style, { justifyContent: 'center', alignItems: 'center' }]}>
+        <Text style={styles.cardTitle}>Total Energy By Device</Text>
+        <ActivityIndicator size="large" color="#FFF" />
+      </View>
+    );
+  }
+  
+  if (deviceData.length === 0) {
+    return (
+      <View style={[chart_style, { justifyContent: 'center', alignItems: 'center' }]}>
+        <Text style={styles.cardTitle}>Total Energy By Device</Text>
+        <Text style={{ color: '#FFF', marginTop: 20 }}>No device energy data available</Text>
+        <TouchableOpacity 
+          style={{ marginTop: 15, padding: 10, backgroundColor: 'rgba(255, 255, 255, 0.2)', borderRadius: 5 }}
+          onPress={handleRefresh}
+        >
+          <Text style={{ color: '#FFF' }}>Refresh Data</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+  
+  // Prepare data for the chart
+  const chartData = {
+    labels: deviceData.map(device => device.deviceType.length > 12 ? device.deviceType.substring(0, 12) + '...' : device.deviceType),
+    datasets: [{
+      data: deviceData.map(device => Math.round(device.totalEnergy * 10) / 10)
+    }]
+  };
+  
+  // Use different colors based on device type
+  const getColorByDeviceType = (deviceType: string, opacity = 1) => {
+    const colors: {[key: string]: string} = {
+      'Smart Light': `rgba(255, 239, 0, ${opacity})`,
+      'Thermostat': `rgba(255, 87, 51, ${opacity})`,
+      'TV': `rgba(30, 144, 255, ${opacity})`,
+      'CCTV': `rgba(50, 205, 50, ${opacity})`,
+      'Roomba': `rgba(255, 105, 180, ${opacity})`,
+      'Washing Machine': `rgba(123, 104, 238, ${opacity})`,
+      'Heart Rate Monitor': `rgba(255, 0, 0, ${opacity})`
+    };
+    return colors[deviceType] || `rgba(128, 128, 128, ${opacity})`;
+  };
+  
+  return (
+    <View style={chart_style}>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+        <Text style={styles.cardTitle}>Total Energy By Device</Text>
+        <TouchableOpacity 
+          style={{ padding: 5 }}
+          onPress={handleRefresh}
+          disabled={isLoading}
+        >
+          <MaterialCommunityIcons
+            name="refresh"
+            size={24}
+            color={isLoading ? "#555" : "#FFF"}
+          />
+        </TouchableOpacity>
+      </View>
+      
+      {isLoading ? (
+        <View style={{ height: 240, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color="#FFF" />
+        </View>
+      ) : (
+        <>
+          <BarChart
+            data={chartData}
+            width={screenWidth - 40}
+            height={240}
+            yAxisLabel=""
+            yAxisSuffix=" kWh"
+            withInnerLines={true}
+            showValuesOnTopOfBars={true}
+            chartConfig={{
+              backgroundColor: '#001322',
+              backgroundGradientFrom: '#001322',
+              backgroundGradientTo: '#001322',
+              decimalPlaces: 1,
+              color: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+              labelColor: (opacity = 1) => `rgba(255, 255, 255, ${opacity})`,
+              style: {
+                borderRadius: 16,
+              },
+              // Custom colors for each bar based on device type
+              propsForDots: {
+                r: "6",
+                strokeWidth: "2",
+                stroke: "#ffa726"
+              }
+            }}
+            style={styles.chart}
+          />
+          <View style={styles.legend}>
+            {deviceData.map((device, index) => (
+              <View key={device.id} style={styles.legendItem}>
+                <View style={[styles.legendColor, { backgroundColor: getColorByDeviceType(device.deviceType) }]} />
+                <Text style={styles.legendText}>
+                  {device.deviceType}: {device.totalEnergy.toFixed(1)} kWh
+                </Text>
+              </View>
+            ))}
+          </View>
+        </>
+      )}
+    </View>
+  );
+};
 
 // Keep NavBar component unchanged
 const NavBar = () => {
@@ -450,17 +653,66 @@ const DeviceUsage: React.FC<DeviceUsageProps> = ({ selectedTime }) => {
   );
 };
 
-// Main Energy component remains mostly unchanged
+// Main Energy component
 const Energy = () => {
   const [selectedTime, setSelectedTime] = useState('day');
+  const [deviceEnergyData, setDeviceEnergyData] = useState<DeviceData[]>([]); // Add state for device energy data
+
+  // Fetch device energy data for PDF report
+  useEffect(() => {
+    const fetchDeviceEnergyForReport = async () => {
+      try {
+        const auth = getAuth();
+        const user = auth.currentUser;
+        
+        if (!user) return;
+        
+        const firestore = getFirestore();
+        const deviceCollectionRef = collection(firestore, "devices");
+        const querySnapshot = await getDocs(deviceCollectionRef);
+        
+        const devices: DeviceData[] = [];
+        querySnapshot.forEach((doc) => {
+          const data = doc.data();
+          if (data.userId === user.uid) {
+            devices.push({
+              id: doc.id,
+              name: data.name || `Device ${doc.id}`,
+              totalEnergy: data.totalEnergy || 0,
+              deviceType: data.deviceType || 'Unknown'
+            });
+          }
+        });
+        
+        // Sort by energy consumption (highest first)
+        devices.sort((a, b) => b.totalEnergy - a.totalEnergy);
+        setDeviceEnergyData(devices);
+      } catch (error) {
+        console.error("Error fetching device energy data for report:", error);
+      }
+    };
+    
+    fetchDeviceEnergyForReport();
+  }, []);
 
   const { width } = useWindowDimensions();
   const containerStyle = width > 768 ? styles.desktop_energy_container : styles.mobile_energy_container; 
   const chart_style = width > 768 ? styles.desktop_chart_style : styles.mobile_chart_style; 
 
-
   const generatePDF = async () => {
     try {
+      // Create HTML content for device energy data
+      const deviceEnergyHtml = `
+        <div class="chart">
+          <div class="chart-title">Device Energy Consumption</div>
+          <div class="chart-data">
+            ${deviceEnergyData.map(device => 
+              `<div>${device.deviceType}: ${device.totalEnergy.toFixed(1)} kWh</div>`
+            ).join('')}
+          </div>
+        </div>
+      `;
+
       const htmlContent = `
         <html>
           <head>
@@ -510,6 +762,7 @@ const Energy = () => {
                 Data: ${JSON.stringify(getChartDataForPDF('Individual Device Usage', selectedTime))}
               </div>
             </div>
+            ${deviceEnergyData.length > 0 ? deviceEnergyHtml : ''}
           </body>
         </html>
       `;
@@ -551,12 +804,8 @@ const Energy = () => {
     }
   };
 
-
-
   return (
     <View style={containerStyle}>
-
-
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 70 : 0}
@@ -570,6 +819,7 @@ const Energy = () => {
           </View>
           <SolarGeneration selectedTime={selectedTime} />
           <DeviceUsage selectedTime={selectedTime} />
+          <DeviceTotalEnergyChart />
         </ScrollView>
         <TouchableOpacity style={localStyles.pdfButton} onPress={generatePDF}>
           <Text style={localStyles.pdfButtonText}>Generate PDF Report</Text>
@@ -583,7 +833,6 @@ const Energy = () => {
 
 // Add local styles
 const localStyles = StyleSheet.create({
-
   pdfButton: {
     backgroundColor: '#001322',
     padding: 15,
@@ -596,9 +845,6 @@ const localStyles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
   },
-
-
-
   sliderContainer: {
     marginVertical: 10,
   },
