@@ -1308,7 +1308,7 @@ const loadAutomations = async (uid: string) => {
             onPress={() => setIsEditing(!isEditing)}
           >
             <Text style={[local_styles.editButtonText, isEditing && local_styles.activeEditButton]}>
-              {isEditing ? 'Done' : 'Edit'}
+              {isEditing ? 'Done' : 'Configure'}
             </Text>
           </TouchableOpacity>
             

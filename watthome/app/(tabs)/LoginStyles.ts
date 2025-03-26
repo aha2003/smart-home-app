@@ -215,6 +215,12 @@ export const styles = StyleSheet.create({
   mobileContainer: {
     paddingBottom: -20, // Space for the bottom nav
   },
+
+  picker: {
+    height: 50,
+    width: '100%',
+    color: '#000',
+  },
   
 
   //devices page stuff
@@ -622,7 +628,7 @@ export const styles = StyleSheet.create({
   },
   
   addGroupForm: {
-    backgroundColor: '#fff',
+    backgroundColor: '#001322',
     borderRadius: 8,
     padding: 16,
     width: '100%',
@@ -633,7 +639,7 @@ export const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 16,
-    color: '#001322',
+    color: '#ffffff',
   },
   
   deviceSelector: {
@@ -647,21 +653,26 @@ export const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 8,
     marginBottom: 8,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#001322',
+    borderWidth:2,
+    borderColor: '#ffffff',
+
   },
   
   selectedDevice: {
-    backgroundColor: '#001d33',
+    backgroundColor: '#ffffff',
+    borderWidth:2,
+    borderColor: '#ffffff',
   },
   
   deviceOptionText: {
     marginLeft: 8,
-    color: '#001322',
+    color: '#ffffff',
     fontSize: 16,
   },
   
   selectedDeviceText: {
-    color: '#fff',
+    color: '#001322',
   },
 
 
