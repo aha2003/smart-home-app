@@ -215,6 +215,12 @@ export const styles = StyleSheet.create({
   mobileContainer: {
     paddingBottom: -20, // Space for the bottom nav
   },
+
+  picker: {
+    height: 50,
+    width: '100%',
+    color: '#000',
+  },
   
 
   //devices page stuff

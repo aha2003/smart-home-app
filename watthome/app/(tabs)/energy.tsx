@@ -10,6 +10,12 @@ import RNHTMLtoPDF from 'react-native-html-to-pdf';
 import { getAuth } from "firebase/auth";
 import { collection, getDocs, getFirestore } from 'firebase/firestore';
 
+
+import * as Print from 'expo-print';
+import * as Sharing from 'expo-sharing';
+import { captureRef, CaptureOptions } from 'react-native-view-shot';
+
+
 import { LogBox } from 'react-native';
 LogBox.ignoreLogs([
   "TypeError: genAI.listModels is not a function",
@@ -352,7 +358,7 @@ type RoomSliderProps = {
 };
 
 const RoomSlider: React.FC<RoomSliderProps> = ({ selectedTime }) => {
-  const rooms = ['Living Room', 'Kitchen', 'Bedroom', 'Kids Room'];
+  const rooms = ['Living Room', 'Kitchen', 'Bedroom', 'Kids Room', 'Grandparents Room', 'Guest Room'];
   const [activeRoomIndex, setActiveRoomIndex] = useState(0);
   const roomsScrollRef = useRef<ScrollView>(null);
   
@@ -657,6 +663,11 @@ const DeviceUsage: React.FC<DeviceUsageProps> = ({ selectedTime }) => {
 const Energy = () => {
   const [selectedTime, setSelectedTime] = useState('day');
   const [deviceEnergyData, setDeviceEnergyData] = useState<DeviceData[]>([]); // Add state for device energy data
+  
+  // Create refs for the chart components
+  const roomChartRef = useRef(null);
+  const solarChartRef = useRef(null);
+  const deviceChartRef = useRef(null);
 
   // Fetch device energy data for PDF report
   useEffect(() => {
@@ -699,88 +710,120 @@ const Energy = () => {
   const containerStyle = width > 768 ? styles.desktop_energy_container : styles.mobile_energy_container; 
   const chart_style = width > 768 ? styles.desktop_chart_style : styles.mobile_chart_style; 
 
+
   const generatePDF = async () => {
     try {
-      // Create HTML content for device energy data
-      const deviceEnergyHtml = `
-        <div class="chart">
-          <div class="chart-title">Device Energy Consumption</div>
-          <div class="chart-data">
-            ${deviceEnergyData.map(device => 
-              `<div>${device.deviceType}: ${device.totalEnergy.toFixed(1)} kWh</div>`
-            ).join('')}
-          </div>
-        </div>
-      `;
+      // Capture settings optimized for iOS
+      const captureOptions: CaptureOptions = {
+        format: 'png', // Explicitly typed as one of the allowed values
+        quality: 0.8,
+        result: 'base64',
+      };
+
+      // Capture charts with base64 encoding
+      const [roomChartBase64, solarChartBase64, deviceChartBase64] = await Promise.all([
+        captureRef(roomChartRef, captureOptions),
+        captureRef(solarChartRef, captureOptions),
+        captureRef(deviceChartRef, captureOptions),
+      ]);
 
       const htmlContent = `
         <html>
           <head>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no" />
             <style>
               body {
-                font-family: Arial, sans-serif;
+                font-family: '-apple-system', 'Helvetica';
                 padding: 20px;
+                color: #333;
+                margin: 0;
               }
               h1 {
-                text-align: center;
                 color: #001322;
+                text-align: center;
+                font-size: 24px;
+                margin-bottom: 30px;
               }
-              .chart {
-                margin-bottom: 20px;
+              .chart-container {
+                margin-bottom: 40px;
+                page-break-inside: avoid;
               }
-               .chart-title {
+              .chart-title {
+                color: #001322;
                 font-size: 18px;
                 font-weight: bold;
-                margin-bottom: 10px;
+                margin-bottom: 15px;
               }
-              .chart-data {
-                font-size: 14px;
-                color: #555;
+              .chart-image {
+                width: 100%;
+                max-width: 100%;
+                height: auto;
+                margin: 0 auto;
+                display: block;
+                border-radius: 8px;
+              }
+              .timestamp {
+                color: #666;
+                font-size: 12px;
+                text-align: right;
+                margin-top: 30px;
               }
             </style>
           </head>
-           <body>
-            <h1>Energy Report</h1>
-            <div class="chart">
-              <div class="chart-title">Electricity Consumption</div>
-              <div class="chart-data">
-                Time Range: ${selectedTime.charAt(0).toUpperCase() + selectedTime.slice(1)}
-              </div>
-              <div class="chart-data">
-                Data: ${JSON.stringify(getChartDataForPDF('Electricity Consumption', selectedTime))}
-              </div>
+          <body>
+            <h1>Energy Consumption Report</h1>
+            
+            <div class="chart-container">
+              <div class="chart-title">Room Energy Consumption - ${selectedTime.charAt(0).toUpperCase() + selectedTime.slice(1)}</div>
+              <img src="data:image/png;base64,${roomChartBase64}" class="chart-image" />
             </div>
-            <div class="chart">
-              <div class="chart-title">Solar Energy Generation</div>
-              <div class="chart-data">
-                Data: ${JSON.stringify(getChartDataForPDF('Solar Energy Generation', selectedTime))}
-              </div>
+
+            <div class="chart-container">
+              <div class="chart-title">Solar Generation</div>
+              <img src="data:image/png;base64,${solarChartBase64}" class="chart-image" />
             </div>
-            <div class="chart">
-              <div class="chart-title">Individual Device Usage</div>
-              <div class="chart-data">
-                Data: ${JSON.stringify(getChartDataForPDF('Individual Device Usage', selectedTime))}
-              </div>
+
+            <div class="chart-container">
+              <div class="chart-title">Device Usage Breakdown</div>
+              <img src="data:image/png;base64,${deviceChartBase64}" class="chart-image" />
             </div>
-            ${deviceEnergyData.length > 0 ? deviceEnergyHtml : ''}
+
+            <div class="timestamp">
+              Generated on ${new Date().toLocaleString()}
+            </div>
           </body>
         </html>
       `;
 
-      const options = {
+      // Generate PDF with iOS-specific settings
+      const { uri } = await Print.printToFileAsync({
         html: htmlContent,
-        fileName: 'Energy_Report',
-        directory: 'Documents',
-      };
+        base64: false,
+        width: Platform.OS === 'ios' ? 612 : undefined, // Standard US Letter width in points
+        height: Platform.OS === 'ios' ? 792 : undefined, // Standard US Letter height in points
+      });
 
-      const file = await RNHTMLtoPDF.convert(options);
-      console.log('PDF generated at:', file.filePath);
-      alert('PDF generated successfully!');
+      // Share the PDF with iOS-specific options
+      await Sharing.shareAsync(uri, {
+        mimeType: 'application/pdf',
+        dialogTitle: 'Download Energy Report',
+        UTI: 'com.adobe.pdf',
+        failOnError: false
+      });
+
     } catch (error) {
       console.error('Error generating PDF:', error);
-      alert('Failed to generate PDF.');
+      
+      // More descriptive error message
+      const errorMessage = Platform.OS === 'ios' 
+        ? 'Failed to generate PDF. Please try again or contact support if the issue persists.'
+        : 'Failed to generate PDF report';
+      
+      alert(errorMessage);
     }
   };
+
+
 
   const getChartDataForPDF = (chartType: string, timeRange: string) => {
     switch (chartType) {
@@ -813,12 +856,16 @@ const Energy = () => {
       >
         <ScrollView style={styles.scrollView}>
           <TimeSelector selectedTime={selectedTime} onTimeSelect={setSelectedTime} />
-          <View style={chart_style}>
+          <View ref={roomChartRef} style={chart_style} collapsable={false}>
             <Text style={styles.cardTitle}>Electricity Consumption</Text>
             <RoomSlider selectedTime={selectedTime} />
           </View>
-          <SolarGeneration selectedTime={selectedTime} />
-          <DeviceUsage selectedTime={selectedTime} />
+          <View ref={solarChartRef} collapsable={false}>
+            <SolarGeneration selectedTime={selectedTime} />
+          </View>
+          <View ref={deviceChartRef} collapsable={false}>
+            <DeviceUsage selectedTime={selectedTime} />
+          </View>
           <DeviceTotalEnergyChart />
         </ScrollView>
         <TouchableOpacity style={localStyles.pdfButton} onPress={generatePDF}>
