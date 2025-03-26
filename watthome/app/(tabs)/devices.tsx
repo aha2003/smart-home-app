@@ -7,7 +7,8 @@ import Chatbot from './chatbot';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { addDevice, getUserDevices, deleteDevice, updateDeviceState, getUserDeviceStates, updateDeviceSettings, getDeviceEnergyStats } from '../../backend/deviceService';
 import { getAuth, onAuthStateChanged } from "firebase/auth";
-import { doc, getFirestore, getDoc } from 'firebase/firestore';
+import { doc, getFirestore, getDoc, collection, getDocs, query } from 'firebase/firestore';
+import { db } from '../../backend/firebaseConfig';
 
 import { LogBox } from 'react-native';
 LogBox.ignoreLogs([
@@ -156,7 +157,7 @@ const DevicesPage = () => {
         let devicesFromDb = await getUserDevices(userId);
         
         // Log what we get from the database
-        console.log("Devices from database:", devicesFromDb);
+        console.log("Devices from database:", JSON.stringify(devicesFromDb, null, 2));
         
         // Check if we actually got devices
         if (!devicesFromDb || devicesFromDb.length === 0) {
@@ -173,28 +174,38 @@ const DevicesPage = () => {
           icon: device.deviceType ? getIconForType(device.deviceType as DeviceType) : 'lightbulb-outline'
         }));
         
-        console.log("Transformed devices:", devicesFromDb);
-        setDevices(devicesFromDb);
+        console.log("Transformed devices:", JSON.stringify(devicesFromDb, null, 2));
         
         // Initialize device states from the isOn field of each device
         const initialDeviceStates: { [key: number]: boolean } = {};
         
-        // First, set a default state for all devices (false/off)
+        // Process each device and store its exact state
         devicesFromDb.forEach(device => {
-          initialDeviceStates[Number(device.id)] = false;
-        });
-        
-        // Then, check device's isOn field and update accordingly
-        devicesFromDb.forEach(device => {
-          // Ensure we're using the correct ID type and properly converting isOn to boolean
+          // Ensure we're using the correct ID type
           const deviceId = Number(device.id);
-          const isOn = device.isOn === true || device.isOn === "true";
           
+          // Handle all possible data formats 
+          let isOn = false;
+          
+          if (typeof device.isOn === 'boolean') {
+            isOn = device.isOn;
+          } else if (device.isOn === 'true') {
+            isOn = true;
+          } else if (device.isOn === true) {
+            isOn = true;
+          }
+          
+          // Log the raw value and the interpreted boolean
+          console.log(`Device ${deviceId} (${device.deviceName || device.name}): Raw isOn=${device.isOn} (${typeof device.isOn}), Interpreted=${isOn}`);
+          
+          // Store the state
           initialDeviceStates[deviceId] = isOn;
-          console.log(`Setting device ${deviceId} state to ${isOn} from device data (isOn=${device.isOn}, type=${typeof device.isOn})`);
         });
         
         console.log("Final initial device states to set:", initialDeviceStates);
+        
+        // Apply states to the devices array to ensure consistency
+        setDevices(devicesFromDb);
         setDeviceStates(initialDeviceStates);
         
         // Also save these states to AsyncStorage for backup
@@ -246,79 +257,63 @@ const DevicesPage = () => {
 
   const loadDeviceStates = async () => {
     try {
-      setIsLoading(true); // Set loading to true at the start
+      setIsLoading(true);
+      console.log("Loading device states directly from Firestore...");
       
-      console.log("Loading device states...");
-      
-      // Initialize device states as an empty object
-      let newDeviceStates: { [key: number]: boolean } = {};
-      
-      // First load device states from Firestore
+      // This time, we'll fetch the full device documents to get the latest state
       if (userId) {
         try {
-          const response = await getUserDeviceStates(userId);
-          console.log("Raw response from Firestore:", response);
+          const userDevices = await getUserDevices(userId);
           
-          if (response && typeof response === 'object' && 'deviceStates' in response) {
-            const firestoreStates = response.deviceStates;
-            console.log("Loaded device states from Firestore:", firestoreStates);
+          if (userDevices && userDevices.length > 0) {
+            console.log("Direct device fetch returned:", JSON.stringify(userDevices, null, 2));
             
-            // Convert string IDs to numbers and ensure boolean values
-            Object.entries(firestoreStates).forEach(([id, state]) => {
-              const deviceId = Number(id);
-              newDeviceStates[deviceId] = Boolean(state);
-              console.log(`Setting device ${deviceId} state to ${state} from Firestore`);
+            // Create a new state object based on these device documents
+            const freshDeviceStates: { [key: number]: boolean } = {};
+            
+            userDevices.forEach(device => {
+              const deviceId = Number(device.id);
+              
+              // Handle all possible data formats 
+              let isOn = false;
+              
+              if (typeof device.isOn === 'boolean') {
+                isOn = device.isOn;
+              } else if (device.isOn === 'true') {
+                isOn = true;
+              } else if (device.isOn === true) {
+                isOn = true;
+              }
+              
+              freshDeviceStates[deviceId] = isOn;
+              console.log(`Loaded device ${deviceId} (${device.deviceName || device.name}) with state: ${isOn} (raw=${device.isOn})`);
             });
+            
+            console.log("Setting fresh device states:", freshDeviceStates);
+            setDeviceStates(freshDeviceStates);
+            
+            // Update our devices array as well to maintain consistency
+            const updatedDevices = userDevices.map(device => ({
+              ...device,
+              icon: device.deviceType ? getIconForType(device.deviceType as DeviceType) : 'lightbulb-outline'
+            }));
+            
+            setDevices(updatedDevices);
+            
+            // Also update AsyncStorage
+            await AsyncStorage.setItem('deviceStates', JSON.stringify(freshDeviceStates));
           } else {
-            console.log("No device states found in Firestore or invalid format");
+            console.log("No devices found when loading states");
           }
-        } catch (firestoreError) {
-          console.error("Error loading states from Firestore:", firestoreError);
+        } catch (error) {
+          console.error("Error loading devices for states:", error);
         }
       }
       
-      // Optionally load from AsyncStorage as a fallback
-      try {
-        const storedDeviceStates = await AsyncStorage.getItem('deviceStates');
-        if (storedDeviceStates) {
-          const parsedStates = JSON.parse(storedDeviceStates);
-          console.log("Loaded device states from AsyncStorage:", parsedStates);
-          
-          // Convert string IDs to numbers and ensure boolean values
-          // Only update states that haven't been set from Firestore
-          Object.entries(parsedStates).forEach(([id, state]) => {
-            const deviceId = Number(id);
-            if (!(deviceId in newDeviceStates)) {
-              newDeviceStates[deviceId] = Boolean(state);
-              console.log(`Setting device ${deviceId} state to ${state} from AsyncStorage (Firestore data not available)`);
-            }
-          });
-        } else {
-          console.log("No device states found in AsyncStorage");
-        }
-      } catch (asyncStorageError) {
-        console.error("Error loading states from AsyncStorage:", asyncStorageError);
-      }
-      
-      // Ensure all devices have a state (default to false if not set)
-      if (devices && devices.length > 0) {
-        devices.forEach(device => {
-          if (!(device.id in newDeviceStates)) {
-            newDeviceStates[device.id] = false;
-            console.log(`Setting default state for device ${device.id} to false (no saved state found)`);
-          }
-        });
-      } else {
-        console.log("No devices available to ensure states");
-      }
-      
-      console.log("Final device states to set:", newDeviceStates);
-      setDeviceStates(newDeviceStates);
-      
-      setIsLoading(false); // Set loading to false when done
+      setIsLoading(false);
     } catch (error) {
-      console.error('Error loading device states:', error);
-      setIsLoading(false); // Also set loading to false on error
+      console.error('Error in loadDeviceStates:', error);
+      setIsLoading(false);
     }
   };
 
@@ -603,7 +598,11 @@ const DevicesPage = () => {
                   )}
   
                   {!editMode && (
-                    <Switch value={deviceStates[device.id]} onValueChange={() => toggleSwitch(device.id)} />
+                    <Switch
+                      value={Boolean(deviceStates[device.id])}
+                      onValueChange={() => toggleSwitch(device.id)}
+                      key={`switch-${device.id}-${deviceStates[device.id]}`}
+                    />
                   )}
                   <Text style={styles.deviceLocation}>{device.location}</Text>
 
@@ -790,14 +789,15 @@ const DevicesPage = () => {
 
         }
 
-        // If this is the washing machine and we're turning it on, reset the timer
+      // If this is the washing machine and we're turning it on, reset the timer
         if (id === WASHING_MACHINE_ID && !deviceStates[id]) {
-            setTimeLeft((prevTime) => ({ ...prevTime, [id]: 1200 })); // 20 minutes
-        }
+        setTimeLeft((prevTime) => ({ ...prevTime, [id]: 1200 })); // 20 minutes
+      }
     } catch (error) {
         console.error('Error in toggleSwitch:', error);
         // Revert local state on error
-        setDeviceStates(prev => ({ ...prev, [id]: !newState[id] })); // Revert to previous state
+        const prevStateValue = deviceStates[id];
+        setDeviceStates(prev => ({ ...prev, [id]: !prev[id] })); // Revert to previous state
     }
   };
 
@@ -985,10 +985,10 @@ const DevicesPage = () => {
           return { ...prev, [WASHING_MACHINE_ID]: newTime };
         });
       }, 1000);
-
+  
       return () => clearInterval(timer);
     }
-  }, [deviceStates, timeLeft, devices]);
+  }, [deviceStates, timeLeft, devices]); 
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -1004,14 +1004,13 @@ const DevicesPage = () => {
     }
     
     try {
-      setIsLoading(true); // Set loading state
+      setIsLoading(true);
       console.log("Refreshing devices for user:", userId);
       
-      // Fetch the devices
+      // Get the latest devices with their current states
       let devicesFromDb = await getUserDevices(userId);
-      console.log("Devices fetched from database:", devicesFromDb);
+      console.log("Fresh devices from database:", JSON.stringify(devicesFromDb, null, 2));
       
-      // Check if we got any devices
       if (!devicesFromDb || devicesFromDb.length === 0) {
         console.log("No devices found during refresh");
         setDevices([]);
@@ -1027,51 +1026,45 @@ const DevicesPage = () => {
         icon: device.deviceType ? getIconForType(device.deviceType as DeviceType) : 'lightbulb-outline'
       }));
       
-      setDevices(devicesFromDb);
+      // Create fresh device states object
+      const freshDeviceStates: { [key: number]: boolean } = {};
       
-      // Initialize device states from the isOn field of each device
-      const refreshedDeviceStates: { [key: number]: boolean } = {};
-      
-      // First set defaults for all devices
+      // Process each device with detailed logging
       devicesFromDb.forEach(device => {
-        refreshedDeviceStates[Number(device.id)] = false;
-      });
-      
-      // Then update with actual isOn values
-      devicesFromDb.forEach(device => {
-        // Ensure we're using the correct ID type and properly handling isOn
         const deviceId = Number(device.id);
-        const isOn = device.isOn === true || device.isOn === "true";
         
-        refreshedDeviceStates[deviceId] = isOn;
-        console.log(`Refreshing device ${deviceId} state to ${isOn} from isOn=${device.isOn}`);
+        // Handle all possible data formats 
+        let isOn = false;
+        
+        if (typeof device.isOn === 'boolean') {
+          isOn = device.isOn;
+        } else if (device.isOn === 'true') {
+          isOn = true;
+        } else if (device.isOn === true) {
+          isOn = true;
+        }
+        
+        freshDeviceStates[deviceId] = isOn;
+        console.log(`Refreshed device ${deviceId} (${device.name}): state=${isOn} (raw=${device.isOn}, type=${typeof device.isOn})`);
       });
       
-      console.log("Setting refreshed device states:", refreshedDeviceStates);
-      setDeviceStates(refreshedDeviceStates);
+      console.log("Setting fresh device states:", freshDeviceStates);
       
-      // Also update AsyncStorage
-      try {
-        await AsyncStorage.setItem('deviceStates', JSON.stringify(refreshedDeviceStates));
-      } catch (error) {
-        console.error("Error saving refreshed device states to AsyncStorage:", error);
-      }
+      // Update both devices and states
+      setDevices(devicesFromDb);
+      setDeviceStates(freshDeviceStates);
       
-      // Load device settings for all devices
+      // Update AsyncStorage
+      await AsyncStorage.setItem('deviceStates', JSON.stringify(freshDeviceStates));
+      
+      // Also reload settings
       await loadDeviceSettings();
       
-      // If any devices are on, update their stats immediately
-      const activeDevices = devicesFromDb.filter(device => refreshedDeviceStates[Number(device.id)]);
-      if (activeDevices.length > 0) {
-        console.log("Found active devices after refresh, updating stats:", activeDevices.map(d => d.id));
-        await updateDeviceStats();
-      }
-      
-      setIsLoading(false); // Clear loading state
+      setIsLoading(false);
       Alert.alert('Success', 'Devices and settings refreshed successfully');
     } catch (error) {
       console.error("Error refreshing devices:", error);
-      setIsLoading(false); // Clear loading state even on error
+      setIsLoading(false);
       Alert.alert("Error", "Failed to refresh your devices. Please try again.");
     }
   };
@@ -1094,6 +1087,29 @@ const DevicesPage = () => {
       }
     }
   };
+  useEffect(() => {
+  const fetchDeviceStates = async () => {
+    try {
+      const devicesRef = collection(db, 'devices');
+      const q = query(devicesRef);
+      const snapshot = await getDocs(q);
+      const newStates: Record<string, boolean> = {};
+      
+      snapshot.forEach((doc) => {
+        const data = doc.data();
+        newStates[doc.id] = !!data.isOn; // Ensure isOn is properly converted to boolean
+      });
+
+      setDeviceStates(newStates); // Update state with fetched values
+    } catch (error) {
+      console.error("Error fetching device states:", error);
+    }
+  };
+
+  fetchDeviceStates();
+}, [devices]); // Dependency ensures it re-fetches when devices change
+
+  
 
   // Add a useEffect to update stats every 10 seconds for active devices
   useEffect(() => {
@@ -1107,7 +1123,7 @@ const DevicesPage = () => {
   }, [deviceStates, devices]);
 
   // Add a helper function to format time
-  const formatDuration = (seconds) => {
+  const formatDuration = (seconds: number): string => {
     const hours = Math.floor(seconds / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const secs = seconds % 60;
@@ -1150,12 +1166,12 @@ const DevicesPage = () => {
                 >
                   <MaterialCommunityIcons name="refresh" size={24} color="#001322" />
                 </TouchableOpacity>
-                <TouchableOpacity 
-                  style={styles.editButton}
-                  onPress={toggleEditMode}
-                >
-                  <Text style={styles.editButtonText}>{editMode ? 'Done' : 'Edit'}</Text>
-                </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.editButton}
+                onPress={toggleEditMode}
+              >
+                <Text style={styles.editButtonText}>{editMode ? 'Done' : 'Edit'}</Text>
+              </TouchableOpacity>
               </View>
             </View>
 
@@ -1171,112 +1187,113 @@ const DevicesPage = () => {
                   </View>
                 ) : (
                   <>
-                    {devices.map((device) => (
-                      <View key={device.id} style={styles.deviceCard}>
-                        {editMode && (
-                          <TouchableOpacity 
-                            style={styles.removeButton}
-                            onPress={() => removeDevice(device.id)}
-                          >
-                            <MaterialCommunityIcons name="minus-circle" size={24} color="red" />
-                          </TouchableOpacity>
-                        )}
-                        
-                        <View style={styles.deviceHeader}>
-                          <MaterialCommunityIcons name={getIconForType(device.deviceType)} size={40} color="#fffcf2" />
-                          <Text style={styles.deviceName}>{device.name}</Text>
-                        </View>
+                {devices.map((device) => (
+                  <View key={device.id} style={styles.deviceCard}>
+                    {editMode && (
+                      <TouchableOpacity 
+                        style={styles.removeButton}
+                        onPress={() => removeDevice(device.id)}
+                      >
+                        <MaterialCommunityIcons name="minus-circle" size={24} color="red" />
+                      </TouchableOpacity>
+                    )}
+                    
+                    <View style={styles.deviceHeader}>
+                      <MaterialCommunityIcons name={getIconForType(device.deviceType)} size={40} color="#fffcf2" />
+                      <Text style={styles.deviceName}>{device.name}</Text>
+                    </View>
 
                         {device.deviceType === 'Thermostat' && deviceStates[device.id] && !editMode && (
-                          <View style={styles.tempControls}>
-                            <TouchableOpacity onPress={() => decreaseTemperature(device.id)}>
-                              <MaterialCommunityIcons name="minus-circle-outline" size={30} color="red" />
-                            </TouchableOpacity>
+                      <View style={styles.tempControls}>
+                        <TouchableOpacity onPress={() => decreaseTemperature(device.id)}>
+                          <MaterialCommunityIcons name="minus-circle-outline" size={30} color="red" />
+                        </TouchableOpacity>
                             <Text style={styles.tempText}>
                               {temperatures[device.id] !== undefined ? temperatures[device.id] : 23}°C
                             </Text>
-                            <TouchableOpacity onPress={() => increaseTemperature(device.id)}>
-                              <MaterialCommunityIcons name="plus-circle-outline" size={30} color="green" />
-                            </TouchableOpacity>
-                          </View>
-                        )}
+                        <TouchableOpacity onPress={() => increaseTemperature(device.id)}>
+                          <MaterialCommunityIcons name="plus-circle-outline" size={30} color="green" />
+                        </TouchableOpacity>
+                      </View>
+                    )}
 
                         {device.deviceType === 'Smart Light' && deviceStates[device.id] && !editMode && (
-                          <View style={styles.brightnessControls}>
-                            <TouchableOpacity onPress={() => decreaseBrightness(device.id)}>
-                              <MaterialCommunityIcons name="minus-circle-outline" size={30} color="red" />
-                            </TouchableOpacity>
+                      <View style={styles.brightnessControls}>
+                        <TouchableOpacity onPress={() => decreaseBrightness(device.id)}>
+                          <MaterialCommunityIcons name="minus-circle-outline" size={30} color="red" />
+                        </TouchableOpacity>
                             <Text style={styles.brightnessText}>
                               {brightness[device.id] !== undefined ? brightness[device.id] : 75}%
                             </Text>
-                            <TouchableOpacity onPress={() => increaseBrightness(device.id)}>
-                              <MaterialCommunityIcons name="plus-circle-outline" size={30} color="green" />
-                            </TouchableOpacity>
-                          </View>
-                        )}
+                        <TouchableOpacity onPress={() => increaseBrightness(device.id)}>
+                          <MaterialCommunityIcons name="plus-circle-outline" size={30} color="green" />
+                        </TouchableOpacity>
+                      </View>
+                    )}
 
                         {device.deviceType === 'Roomba' && deviceStates[device.id] && !editMode && (
-                          <View style={styles.roombaControls}>
-                            <Text style={styles.roombaSpeed}>{roombaSpeed}</Text>
-                            <TouchableOpacity onPress={cycleRoombaSpeed}>
-                              <MaterialCommunityIcons name="reload" size={17} color="white" />
-                            </TouchableOpacity>
-                          </View>
-                        )}
+                      <View style={styles.roombaControls}>
+                        <Text style={styles.roombaSpeed}>{roombaSpeed}</Text>
+                        <TouchableOpacity onPress={cycleRoombaSpeed}>
+                          <MaterialCommunityIcons name="reload" size={17} color="white" />
+                        </TouchableOpacity>
+                      </View>
+                    )}
 
                         {device.deviceType === 'TV' && deviceStates[device.id] && !editMode && (
-                          <View style={styles.volumeControls}>
-                            <TouchableOpacity onPress={() => decreaseVolume(device.id)}>
-                              <MaterialCommunityIcons name="volume-minus" size={30} color="red" />
-                            </TouchableOpacity>
+                      <View style={styles.volumeControls}>
+                        <TouchableOpacity onPress={() => decreaseVolume(device.id)}>
+                          <MaterialCommunityIcons name="volume-minus" size={30} color="red" />
+                        </TouchableOpacity>
                             <Text style={styles.volumeText}>
                               {volume[device.id] !== undefined ? volume[device.id] : 10}
                             </Text>
-                            <TouchableOpacity onPress={() => increaseVolume(device.id)}>
-                              <MaterialCommunityIcons name="volume-plus" size={30} color="green" />
-                            </TouchableOpacity>
-                          </View>
-                        )}
+                        <TouchableOpacity onPress={() => increaseVolume(device.id)}>
+                          <MaterialCommunityIcons name="volume-plus" size={30} color="green" />
+                        </TouchableOpacity>
+                      </View>
+                    )}
 
                         {device.deviceType === 'Washing Machine' && deviceStates[device.id] && !editMode && (
-                          <View style={styles.controlPanel}>
-                            <Text style={styles.washingStatus}>
-                              {deviceStates[device.id] ? `Running: ${formatTime(timeLeft[device.id] || 0)}` : 'Off'}
-                            </Text>
-                            {deviceStates[device.id] && (
-                              <TouchableOpacity 
-                                style={styles.resetButton}
+                      <View style={styles.controlPanel}>
+                        <Text style={styles.washingStatus}>
+                          {deviceStates[device.id] ? `Running: ${formatTime(timeLeft[device.id] || 0)}` : 'Off'}
+                        </Text>
+                        {deviceStates[device.id] && (
+                          <TouchableOpacity 
+                            style={styles.resetButton}
                                 onPress={() => resetWashingMachineTimer(device.id)}
-                              >
-                                <MaterialCommunityIcons name="restart" size={20} color="white" />
-                              </TouchableOpacity>
-                            )}
-                          </View>
+                          >
+                            <MaterialCommunityIcons name="restart" size={20} color="white" />
+                          </TouchableOpacity>
                         )}
+                      </View>
+                    )}
 
                         {device.deviceType === 'CCTV' && deviceStates[device.id] && !editMode && (
-                          <View style={styles.controlPanel}>
-                            <Text style={styles.controlText}>
-                              {'Recording...'}
-                            </Text>
-                          </View>
-                        )}
+                      <View style={styles.controlPanel}>
+                        <Text style={styles.controlText}>
+                          {'Recording...'}
+                        </Text>
+                      </View>
+                    )}
 
                         {device.deviceType === 'Heart Rate Monitor' && deviceStates[device.id] && !editMode && (
-                          <View style={styles.controlPanel}>
-                            <Text style={styles.controlText}>
-                              {'Recording...'}
-                            </Text>
-                          </View>
-                        )}
+                      <View style={styles.controlPanel}>
+                        <Text style={styles.controlText}>
+                          {'Recording...'}
+                        </Text>
+                      </View>
+                    )}
 
-                        {!editMode && (
-                          <Switch
-                            value={deviceStates[device.id]}
-                            onValueChange={() => toggleSwitch(device.id)}
-                          />
-                        )}
-                        <Text style={styles.deviceLocation}>{device.location}</Text>
+                    {!editMode && (
+                      <Switch
+                            value={Boolean(deviceStates[device.id])}
+                        onValueChange={() => toggleSwitch(device.id)}
+                            key={`switch-${device.id}-${deviceStates[device.id]}`}
+                      />
+                    )}
+                    <Text style={styles.deviceLocation}>{device.location}</Text>
 
                         {deviceStates[device.id] && !editMode && (
                           <View style={localStyles.energyBadge}>
@@ -1285,18 +1302,18 @@ const DevicesPage = () => {
                             </Text>
                           </View>
                         )}
-                      </View>
-                    ))}
-                    
-                    {/* Add New Device Card */}
-                    {editMode && (
-                      <TouchableOpacity 
-                        style={styles.addDeviceCard}
-                        onPress={() => setShowAddForm(true)}
-                      >
-                        <MaterialCommunityIcons name="plus-circle" size={50} color="#001322" />
-                        <Text style={styles.addDeviceText}>Add Device</Text>
-                      </TouchableOpacity>
+                  </View>
+                ))}
+
+                {/* Add New Device Card */}
+                {editMode && (
+                  <TouchableOpacity 
+                    style={styles.addDeviceCard}
+                    onPress={() => setShowAddForm(true)}
+                  >
+                    <MaterialCommunityIcons name="plus-circle" size={50} color="#001322" />
+                    <Text style={styles.addDeviceText}>Add Device</Text>
+                  </TouchableOpacity>
                     )}
                   </>
                 )}
