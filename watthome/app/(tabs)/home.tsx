@@ -292,6 +292,7 @@ const WeatherWidget = () => {
         setWeather({
           temp: Math.round(data.main.temp),
           description: data.weather[0].main,
+          windSpeed: data.wind.speed,
         });
       } catch (error) {
         console.error("Error fetching weather:", error);
@@ -342,6 +343,7 @@ const WeatherWidget = () => {
         <View style={localStyles.weatherInfo}>
           <Text style={localStyles.weatherLocation}>Dubai</Text>
           <Text style={localStyles.weatherTemp}>{weather.temp}°C, {weather.description}</Text>
+          <Text style={localStyles.weatherTemp}>Wind: {weather.temp} m/s</Text>
         </View>
         <View style={localStyles.weatherTime}>
           <Text style={localStyles.timeText}>{formattedTime}</Text>
