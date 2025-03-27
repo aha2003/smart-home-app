@@ -193,7 +193,7 @@ const DeviceTotalEnergyChart: React.FC = () => {
             width={screenWidth - 40}
             height={240}
             yAxisLabel=""
-            yAxisSuffix=" kWh"
+            yAxisSuffix=" Wh"
             withInnerLines={true}
             showValuesOnTopOfBars={true}
             chartConfig={{
@@ -220,7 +220,7 @@ const DeviceTotalEnergyChart: React.FC = () => {
               <View key={device.id} style={styles.legendItem}>
                 <View style={[styles.legendColor, { backgroundColor: getColorByDeviceType(device.deviceType) }]} />
                 <Text style={styles.legendText}>
-                  {device.deviceType}: {device.totalEnergy.toFixed(1)} kWh
+                  {device.deviceType}: {device.totalEnergy.toFixed(1)} Wh
                 </Text>
               </View>
             ))}

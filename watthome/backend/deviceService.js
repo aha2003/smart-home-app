@@ -225,7 +225,7 @@ export const getDeviceEnergyStats = async (deviceId) => {
         stats: {
           totalUsageTime: deviceData.totalUsageTime || 0, // in seconds
           currentSessionTime, // in seconds
-          totalEnergy: deviceData.totalEnergy || 0, // in kWh or whatever unit you're using
+          totalEnergy: deviceData.totalEnergy || 0, // in Wh
           isCurrentlyOn: deviceData.isOn || false,
           energyUsageRate: deviceData.energyUsage || 0 // hourly rate
         }

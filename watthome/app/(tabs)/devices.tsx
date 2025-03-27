@@ -32,6 +32,19 @@ interface DeviceGroup {
   devices: number[];
 }
 
+// Add an interface for energy stats response
+interface DeviceEnergyStatsResponse {
+  success: boolean;
+  error?: string;
+  stats?: {
+    totalUsageTime: number;
+    currentSessionTime: number;
+    totalEnergy: number;
+    isCurrentlyOn: boolean;
+    energyUsageRate: number;
+  }
+}
+
 const NavBar = () => {
   const isDesktop = Platform.OS === 'web';
 
@@ -164,12 +177,12 @@ const loadDeviceGroups = async () => {
 
   const defaultEnergyUsage: Record<DeviceType, number> = {
     'Smart Light': 10,
-    'Thermostat': 50,
+    'Thermostat': 5,
     'CCTV': 5,
     'TV': 30,
     'Roomba': 20,
     'Washing Machine': 60,
-    'Heart Rate Monitor': 15
+    'Heart Rate Monitor': 5
   };
 
   useEffect(() => {
@@ -200,7 +213,6 @@ const loadDeviceGroups = async () => {
         
         console.log("Transformed devices:", JSON.stringify(devicesFromDb, null, 2));
         
-<<<<<<< HEAD
         // Initialize device states from the isOn field of each device
         const initialDeviceStates: { [key: number]: boolean } = {};
         
@@ -249,10 +261,6 @@ const loadDeviceGroups = async () => {
           console.log("Found active devices, updating stats:", activeDevices.map(d => d.id));
           await updateDeviceStats();
         }
-=======
-        // Load device states from Firestore (make sure this happens after devices are loaded)
-        await loadDeviceStates();
->>>>>>> 395a46b972c457296338ca01026646b3e919e094
       } catch (error) {
         console.error("Error loading devices:", error);
         Alert.alert("Error", "Failed to load your devices. Please try again.");
@@ -288,7 +296,6 @@ const loadDeviceGroups = async () => {
       setIsLoading(true);
       console.log("Loading device states directly from Firestore...");
       
-<<<<<<< HEAD
       // This time, we'll fetch the full device documents to get the latest state
       if (userId) {
         try {
@@ -340,33 +347,6 @@ const loadDeviceGroups = async () => {
       }
       
       setIsLoading(false);
-=======
-      // First load device states from Firestore
-      if (userId) {
-        const response = await getUserDeviceStates(userId);
-        if (response.success && response.deviceStates) {
-          console.log("Loaded device states from Firestore:", response.deviceStates);
-          // Type assertion to ensure empty object is accepted
-          setDeviceStates(response.deviceStates as { [key: number]: boolean });
-        } else {
-          console.error("Error loading device states from Firestore:", response.error);
-        }
-        
-        // Now load device settings
-        await loadDeviceSettings();
-      }
-      
-      // Optionally load from AsyncStorage as a fallback or to override
-      const storedDeviceStates = await AsyncStorage.getItem('deviceStates');
-      if (storedDeviceStates) {
-        const parsedStates = JSON.parse(storedDeviceStates);
-        console.log("Loaded device states from AsyncStorage:", parsedStates);
-        // Merge with existing states
-        setDeviceStates(prev => ({...prev, ...parsedStates}));
-      }
-      
-      setIsLoading(false); // Set loading to false when done
->>>>>>> 395a46b972c457296338ca01026646b3e919e094
     } catch (error) {
       console.error('Error in loadDeviceStates:', error);
       setIsLoading(false);
@@ -826,48 +806,43 @@ const loadDeviceGroups = async () => {
 
   // Update the toggleSwitch function to save state to Firestore as well
   const toggleSwitch = async (id: number) => {
-    setDeviceStates((prev) => {
-      const newState = { ...prev, [id]: !prev[id] };
-      
-      // Save to Firestore
-      if (userId) {
-        updateDeviceState(id.toString(), newState[id])
-          .then(response => {
-            if ('success' in response && !response.success && 'error' in response) {
-              console.error('Error saving device state to Firestore:', response.error);
-            } else {
-              console.log(`Device ${id} state updated in Firestore to ${newState[id]}`);
-            }
-          })
-          .catch(error => {
-            console.error('Exception saving device state to Firestore:', error);
-          });
-      }
+    try {
+      setDeviceStates((prev) => {
+        const newState = { ...prev, [id]: !prev[id] };
+        
+        // Save to Firestore
+        if (userId) {
+          updateDeviceState(id.toString(), newState[id])
+            .then(response => {
+              if ('success' in response && !response.success && 'error' in response) {
+                console.error('Error saving device state to Firestore:', response.error);
+              } else {
+                console.log(`Device ${id} state updated in Firestore to ${newState[id]}`);
+              }
+            })
+            .catch(error => {
+              console.error('Exception saving device state to Firestore:', error);
+            });
+        }
 
-      // Save to AsyncStorage as backup
-      AsyncStorage.setItem('deviceStates', JSON.stringify(newState)).catch((error) => {
-        console.error('Error saving device states to AsyncStorage:', error);
-      });
+        // Save to AsyncStorage as backup
+        AsyncStorage.setItem('deviceStates', JSON.stringify(newState)).catch((error) => {
+          console.error('Error saving device states to AsyncStorage:', error);
+        });
 
-      // If this is the washing machine and we're turning it on, reset the timer
-<<<<<<< HEAD
+        // If this is the washing machine and we're turning it on, reset the timer
         if (id === WASHING_MACHINE_ID && !deviceStates[id]) {
-        setTimeLeft((prevTime) => ({ ...prevTime, [id]: 1200 })); // 20 minutes
-      }
+          setTimeLeft((prevTime) => ({ ...prevTime, [id]: 1200 })); // 20 minutes
+        }
+        
+        return newState; // Return the new state for React's state update
+      });
     } catch (error) {
-        console.error('Error in toggleSwitch:', error);
-        // Revert local state on error
-        const prevStateValue = deviceStates[id];
-        setDeviceStates(prev => ({ ...prev, [id]: !prev[id] })); // Revert to previous state
+      console.error('Error in toggleSwitch:', error);
+      // Revert local state on error
+      const prevStateValue = deviceStates[id];
+      setDeviceStates(prev => ({ ...prev, [id]: !prev[id] })); // Revert to previous state
     }
-=======
-      if (id === WASHING_MACHINE_ID && newState[id]) {
-        setTimeLeft((prevTime) => ({ ...prevTime, [id]: 1200 })); // 20 minutes
-      }
-
-      return newState;
-    });
->>>>>>> 395a46b972c457296338ca01026646b3e919e094
   };
 
   // Update the temperature functions to save to Firestore
@@ -1073,16 +1048,11 @@ const loadDeviceGroups = async () => {
     }
     
     try {
-<<<<<<< HEAD
       setIsLoading(true);
       console.log("Refreshing devices for user:", userId);
-=======
-      setIsLoading(true); // Set loading state
->>>>>>> 395a46b972c457296338ca01026646b3e919e094
       
       // Get the latest devices with their current states
       let devicesFromDb = await getUserDevices(userId);
-<<<<<<< HEAD
       console.log("Fresh devices from database:", JSON.stringify(devicesFromDb, null, 2));
       
       if (!devicesFromDb || devicesFromDb.length === 0) {
@@ -1093,8 +1063,6 @@ const loadDeviceGroups = async () => {
         Alert.alert('Info', 'No devices found for your account.');
         return;
       }
-=======
->>>>>>> 395a46b972c457296338ca01026646b3e919e094
       
       // Transform devices
       devicesFromDb = devicesFromDb.map(device => ({
@@ -1106,7 +1074,6 @@ const loadDeviceGroups = async () => {
       // Create fresh device states object
       const freshDeviceStates: { [key: number]: boolean } = {};
       
-<<<<<<< HEAD
       // Process each device with detailed logging
       devicesFromDb.forEach(device => {
         const deviceId = Number(device.id);
@@ -1139,12 +1106,6 @@ const loadDeviceGroups = async () => {
       await loadDeviceSettings();
       
       setIsLoading(false);
-=======
-      // Load device states and settings from Firestore
-      await loadDeviceStates(); // This now also loads settings
-      
-      setIsLoading(false); // Clear loading state
->>>>>>> 395a46b972c457296338ca01026646b3e919e094
       Alert.alert('Success', 'Devices and settings refreshed successfully');
     } catch (error) {
       console.error("Error refreshing devices:", error);
@@ -1153,14 +1114,15 @@ const loadDeviceGroups = async () => {
     }
   };
 
-  // Add this function to update device stats periodically
+  // Update the updateDeviceStats function to use the proper type
   const updateDeviceStats = async () => {
     const activeDevices = devices.filter(device => deviceStates[device.id]);
     
     for (const device of activeDevices) {
       try {
-        const stats = await getDeviceEnergyStats(device.id.toString());
-        if (stats.success) {setDeviceUsageStats(prev => ({
+        const stats = await getDeviceEnergyStats(device.id.toString()) as DeviceEnergyStatsResponse;
+        if (stats.success && stats.stats) {
+          setDeviceUsageStats(prev => ({
             ...prev,
             [device.id]: stats.stats
           }));
@@ -1374,7 +1336,6 @@ const loadDeviceGroups = async () => {
                       </View>
                     )}
 
-<<<<<<< HEAD
                     {!editMode && (
                       <Switch
                             value={Boolean(deviceStates[device.id])}
@@ -1383,17 +1344,6 @@ const loadDeviceGroups = async () => {
                       />
                     )}
                     <Text style={styles.deviceLocation}>{device.location}</Text>
-=======
-                        {!editMode && (
-                          <Switch
-                            value={deviceStates[device.id]}
-                            onValueChange={() => toggleSwitch(device.id)}
-                          />
-                        )}
-                        <View style={localStyles.deviceFooter}>
-                        <Text style={localStyles.deviceLocation}>{device.location}
-                        </Text>
->>>>>>> 395a46b972c457296338ca01026646b3e919e094
 
                         {deviceStates[device.id] && !editMode && (
                           
@@ -1401,7 +1351,6 @@ const loadDeviceGroups = async () => {
                               {defaultEnergyUsage[device.deviceType] || 10} W/h
                             </Text>
                         )}
-<<<<<<< HEAD
                   </View>
                 ))}
 
@@ -1414,22 +1363,6 @@ const loadDeviceGroups = async () => {
                     <MaterialCommunityIcons name="plus-circle" size={50} color="#001322" />
                     <Text style={styles.addDeviceText}>Add Device</Text>
                   </TouchableOpacity>
-=======
-                        
-                        </View>
-                      </View>
-                    ))}
-                    
-                    {/* Add New Device Card */}
-                    {editMode && (
-                      <TouchableOpacity 
-                        style={styles.addDeviceCard}
-                        onPress={() => setShowAddForm(true)}
-                      >
-                        <MaterialCommunityIcons name="plus-circle" size={50} color="#001322" />
-                        <Text style={styles.addDeviceText}>Add Device</Text>
-                      </TouchableOpacity>
->>>>>>> 395a46b972c457296338ca01026646b3e919e094
                     )}
                   </>
                 )}

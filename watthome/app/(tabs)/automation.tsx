@@ -191,19 +191,25 @@ export default function AutomationsScreen() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [automationTimers, setAutomationTimers] = useState<TimerType>({});
   const [refreshing, setRefreshing] = useState(false);
+  const [editingAutomation, setEditingAutomation] = useState<AutomationType | null>(null);
 
   // New automation form state
-  const [newAutomation, setNewAutomation] = useState({
+  const [newAutomation, setNewAutomation] = useState<any>({
     name: '',
     trigger: '',
     timeInput: '12:00',
     timePeriod: 'AM',
     triggerValue: '',
-    temperatureComparison: 'Above', // Default temperature comparison
-    triggerDevice: null as DeviceType | null, // Device that will act as the temperature sensor
+    temperatureComparison: 'Above',
+    temperatureValue: '',
+    temperatureComparisonType: 'Above',
+    triggerDevice: null as DeviceType | null,
     devices: [] as any[],
+    selectedDevices: [] as any[],
     actions: '',
     actionValue: '',
+    frequency: 'Daily',
+    notifyBefore: false,
   });
 
   const triggerOptions = [
@@ -447,6 +453,37 @@ const loadAutomations = async (uid: string) => {
   //   loadAutomations();
   // }, []);
 
+  const handleEditAutomation = (automation: AutomationType) => {
+    console.log("Editing automation:", automation);
+    setEditingAutomation(automation);
+    
+    // Pre-fill the newAutomation state with the selected automation's data
+    const temperatureComparisonValue = automation.trigger.includes('Above') ? 'Above' : 'Below';
+    
+    setNewAutomation({
+      name: automation.name,
+      trigger: automation.trigger.startsWith('Temperature') ? 'Temperature' : automation.trigger,
+      timeInput: automation.triggerTime ? automation.triggerTime.split(' ')[0] : '12:00',
+      timePeriod: automation.triggerTime ? automation.triggerTime.split(' ')[1] || 'AM' : 'AM',
+      triggerValue: automation.triggerValue || '',
+      temperatureValue: automation.triggerValue || '',
+      temperatureComparison: temperatureComparisonValue,
+      temperatureComparisonType: temperatureComparisonValue,
+      actions: automation.actions || 'Turn On',
+      actionValue: automation.actionValue || '',
+      frequency: automation.frequency || 'Daily',
+      notifyBefore: automation.notifyBefore || false,
+      devices: automation.devices || [],
+      selectedDevices: automation.devices || [],
+      triggerDevice: automation.triggerDevice || null
+    });
+    
+    // Show the add/edit modal and hide the details modal
+    setAddModalVisible(true);
+    setDetailsModalVisible(false);
+  };
+
+  // Update the createNewAutomation function to handle both creating new and updating existing automations
   const createNewAutomation = async () => {
     if (!userId) {
       Alert.alert("Error", "You must be logged in to create automations");
@@ -459,124 +496,205 @@ const loadAutomations = async (uid: string) => {
     }
 
     try {
-      // Format time properly
-      let triggerTime: string | undefined = undefined;  // Use undefined, not null
-      let triggerValue = newAutomation.triggerValue || undefined;  // Use undefined, not null
-      let actualTrigger = newAutomation.trigger;
-      let triggerDevice = undefined;
+      setIsLoading(true);
+      const normalizedTriggerTime = `${newAutomation.timeInput} ${newAutomation.timePeriod}`;
+      const temperatureTrigger = `Temperature ${newAutomation.temperatureComparison || newAutomation.temperatureComparisonType}`;
       
-    if (newAutomation.trigger === 'Time of Day') {
-        // Convert 12hr format to proper format if needed
-        triggerTime = `${newAutomation.timeInput} ${newAutomation.timePeriod}`;
-      } else if (newAutomation.trigger === 'Temperature') {
-        // Create the proper trigger name based on the comparison
-        actualTrigger = `Temperature ${newAutomation.temperatureComparison}`;
-        // Don't set triggerTime for temperature triggers, leave it as undefined
+      // Determine if we're creating or updating
+      if (editingAutomation) {
+        console.log("Updating existing automation:", editingAutomation.id);
         
-        // Validate temperature input
-        if (!triggerValue || isNaN(parseFloat(triggerValue))) {
-          Alert.alert("Error", "Please enter a valid temperature value");
-        return;
-      }
-        
-        // Validate that a trigger device (thermostat) is selected
-        if (!newAutomation.triggerDevice) {
-          Alert.alert(
-            "Error",
-            "Please select a thermostat device to use as the temperature sensor"
-          );
-          return;
-        }
-        
-        // Set the trigger device for the automation
-        triggerDevice = {
-          id: newAutomation.triggerDevice.id,
-          name: newAutomation.triggerDevice.name || newAutomation.triggerDevice.deviceName,
-          location: newAutomation.triggerDevice.location,
-          deviceType: newAutomation.triggerDevice.deviceType
+        // Update existing automation
+        const updates: any = {
+          name: newAutomation.name,
+          trigger: newAutomation.trigger === 'Time of Day' ? 'Time of Day' : temperatureTrigger,
+          devices: newAutomation.selectedDevices || newAutomation.devices,
+          actions: newAutomation.actions,
+          frequency: newAutomation.frequency,
+          notifyBefore: newAutomation.notifyBefore,
+          lastUpdated: new Date()
         };
         
-        // Check if at least one device is selected for the action
-        if (newAutomation.devices.length === 0) {
-          Alert.alert(
-            "Error", 
-            "Please select at least one device to control with this automation."
-          );
-          return;
+        // Only add fields that are relevant based on the trigger type
+    if (newAutomation.trigger === 'Time of Day') {
+          updates.triggerTime = normalizedTriggerTime;
+        } else {
+          updates.triggerValue = newAutomation.temperatureValue || newAutomation.triggerValue;
+          updates.triggerDevice = newAutomation.triggerDevice;
         }
+        
+        // Add actionValue if relevant
+        if (['Set Temperature', 'Set Brightness'].includes(newAutomation.actions)) {
+          updates.actionValue = newAutomation.actionValue;
+        }
+        
+        console.log("Sending update with data:", updates);
+        
+        // Call the update function
+        const result: any = await updateAutomation(editingAutomation.id, updates);
+        
+        if (result.success) {
+          Alert.alert('Success', 'Automation updated successfully');
+          setAddModalVisible(false);
+          
+          // Reset editing state
+          setEditingAutomation(null);
+          
+          // Reset form
+          setNewAutomation({
+            name: '',
+            trigger: '',
+            timeInput: '12:00',
+            timePeriod: 'AM',
+            triggerValue: '',
+            temperatureComparison: 'Above',
+            temperatureValue: '',
+            temperatureComparisonType: 'Above',
+            triggerDevice: null,
+            devices: [],
+            selectedDevices: [],
+            actions: '',
+            actionValue: '',
+            frequency: 'Daily',
+            notifyBefore: false,
+          });
+          
+          // Refresh the list
+          if (userId) {
+            await loadAutomations(userId);
+          }
+        } else {
+          Alert.alert('Error', result.error || 'Failed to update automation');
+        }
+      } else {
+        // Original code for creating a new automation
+        // Format time properly
+        let triggerTime: string | undefined = undefined;  // Use undefined, not null
+        let triggerValue = newAutomation.triggerValue || undefined;  // Use undefined, not null
+        let actualTrigger = newAutomation.trigger;
+        let triggerDevice = undefined;
+        
+        if (newAutomation.trigger === 'Time of Day') {
+          // Convert 12hr format to proper format if needed
+          triggerTime = `${newAutomation.timeInput} ${newAutomation.timePeriod}`;
+        } else if (newAutomation.trigger === 'Temperature') {
+          // Create the proper trigger name based on the comparison
+          actualTrigger = `Temperature ${newAutomation.temperatureComparisonType}`;
+          // Don't set triggerTime for temperature triggers, leave it as undefined
+          
+          // Validate temperature input
+          if (!triggerValue || isNaN(parseFloat(triggerValue))) {
+            Alert.alert("Error", "Please enter a valid temperature value");
+        return;
       }
+          
+          // Validate that a trigger device (thermostat) is selected
+          if (!newAutomation.triggerDevice) {
+            Alert.alert(
+              "Error",
+              "Please select a thermostat device to use as the temperature sensor"
+            );
+            return;
+          }
+          
+          // Set the trigger device for the automation
+          triggerDevice = {
+            id: newAutomation.triggerDevice.id,
+            name: newAutomation.triggerDevice.name || newAutomation.triggerDevice.deviceName,
+            location: newAutomation.triggerDevice.location,
+            deviceType: newAutomation.triggerDevice.deviceType
+          };
+          
+          // Check if at least one device is selected for the action
+          if (newAutomation.devices.length === 0) {
+            Alert.alert(
+              "Error", 
+              "Please select at least one device to control with this automation."
+            );
+            return;
+          }
+        }
 
-      console.log("Creating automation with parameters:", {
-        userId,
+        console.log("Creating automation with parameters:", {
+          userId,
       name: newAutomation.name,
-        trigger: actualTrigger,
-        triggerTime,
-        triggerValue,
-        triggerDevice,
-      devices: newAutomation.devices,
-      actions: newAutomation.actions,
-        actionValue: newAutomation.actionValue
-      });
-
-      // Create automation in Firebase
-      const automationData = {
-        userId,
-        name: newAutomation.name,
-        trigger: actualTrigger,
-        triggerTime,
-        triggerValue,
+          trigger: actualTrigger,
+          triggerTime,
+          triggerValue,
+          triggerDevice,
         devices: newAutomation.devices,
         actions: newAutomation.actions,
-        actionValue: newAutomation.actionValue || undefined,
+          actionValue: newAutomation.actionValue
+        });
+
+        // Create automation in Firebase
+        const automationData = {
+          userId,
+          name: newAutomation.name,
+          trigger: actualTrigger,
+          triggerTime,
+          triggerValue,
+      devices: newAutomation.devices,
+      actions: newAutomation.actions,
+      actionValue: newAutomation.actionValue,
+      isActive: true,
       frequency: 'Daily',
-        notifyBefore: false,
-        triggerDevice
-      };
+          notifyBefore: false
+        };
 
-      console.log("Creating automation with parameters:", automationData);
-      
-      const result = await createAutomation(
-        automationData.userId,
-        automationData.name,
-        automationData.trigger,
-        automationData.triggerTime,
-        automationData.triggerValue,
-        automationData.devices,
-        automationData.actions,
-        automationData.actionValue,
-        automationData.frequency,
-        automationData.notifyBefore,
-        automationData.triggerDevice
-      );
-
-      console.log("Automation creation result:", result);
-
-      if (result && result.success) {
-        // Reload automations to get the most up-to-date list with IDs
-        loadAutomations(userId);
+        console.log("Creating automation with parameters:", automationData);
         
-        // Reset form and close modal
+        const result = await createAutomation(
+          userId,
+          newAutomation.name,
+          actualTrigger,
+          triggerTime,
+          triggerValue,
+          newAutomation.devices,
+          newAutomation.actions,
+          newAutomation.actionValue,
+          'Daily',
+          false,
+          triggerDevice
+        ) as { success: boolean; error?: string };
+
+        console.log("Automation creation result:", result);
+
+        if (result.success) {
+          // Reload automations to get the most up-to-date list with IDs
+          loadAutomations(userId);
+          
+          // Reset form and close modal
     setNewAutomation({
       name: '',
       trigger: '',
       timeInput: '12:00',
-          timePeriod: 'AM',
+            timePeriod: 'AM',
       triggerValue: '',
-          temperatureComparison: 'Above',
-          triggerDevice: null,
+            temperatureComparison: 'Above',
+            temperatureValue: '',
+            temperatureComparisonType: 'Above',
+            triggerDevice: null,
       devices: [],
+            selectedDevices: [],
       actions: '',
       actionValue: '',
-    });
-        setAddModalVisible(false);
-        
-        Alert.alert("Success", "Automation created successfully");
-      } else {
-        Alert.alert("Error", result.error || "Failed to create automation");
+            frequency: 'Daily',
+            notifyBefore: false,
+          });
+          setAddModalVisible(false);
+          
+          Alert.alert("Success", "Automation created successfully");
+        } else {
+          Alert.alert("Error", result.error || "Failed to create automation");
+        }
       }
     } catch (error: any) {
-      console.error("Error creating automation:", error);
-      Alert.alert("Error", error.message || "An unexpected error occurred");
+      console.error("Error creating/updating automation:", error);
+      setIsLoading(false);
+      Alert.alert("Error", `Failed to ${editingAutomation ? 'update' : 'create'} automation: ${error.message || 'Unknown error'}`);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -591,7 +709,7 @@ const loadAutomations = async (uid: string) => {
       const newIsActive = !automation.isActive;
       
       // Update in Firebase
-      const result = await toggleAutomationActive(automationId, newIsActive);
+      const result = await toggleAutomationActive(automationId, newIsActive) as { success: boolean; error?: string };
       if (result.success) {
         // Update local state
         setAutomations(automations.map(a => 
@@ -628,10 +746,10 @@ const loadAutomations = async (uid: string) => {
       console.log(`Starting deletion of automation ${id} from Firestore...`);
       
       // Call Firebase to delete the automation
-      const result = await deleteAutomationInFirebase(id);
+      const result = await deleteAutomationInFirebase(id) as { success: boolean; error?: string };
       console.log(`Deletion API result:`, result);
       
-      if (result && result.success) {
+      if (result.success) {
         // Update local state only after successful deletion
         console.log(`Successfully deleted automation ${id} from Firestore, updating local state`);
     setAutomations(automations.filter(auto => auto.id !== id));
@@ -661,7 +779,7 @@ const loadAutomations = async (uid: string) => {
     }
   };
 
-  const toggleDeviceSelection = (device) => {
+  const toggleDeviceSelection = (device: DeviceType) => {
     const isSelected = newAutomation.devices.some(d => d.id === device.id);
     setNewAutomation({
       ...newAutomation,
@@ -671,23 +789,23 @@ const loadAutomations = async (uid: string) => {
     });
   };
 
-  const renderDeviceItem = (device) => (
+  const renderDeviceItem = (device: DeviceType) => (
     <TouchableOpacity
-      key={device.id}
       style={[
         local_styles.deviceSelectionItem,
-        newAutomation.devices.some(d => d.id === device.id) && local_styles.deviceSelectionItemSelected
+        newAutomation.devices.some((d: any) => d.id === device.id) && local_styles.selectedDevice
       ]}
       onPress={() => toggleDeviceSelection(device)}
     >
-      <MaterialCommunityIcons name={device.icon} size={24} color="#666" />
+      <MaterialCommunityIcons 
+        name={device.icon ? device.icon.toString() : "devices"} 
+        size={24} 
+        color="#666" 
+      />
       <View style={local_styles.deviceSelectionInfo}>
-        <Text style={local_styles.deviceSelectionName}>{device.name}</Text>
+        <Text style={local_styles.deviceSelectionName}>{device.name || device.deviceName || 'Unknown Device'}</Text>
         <Text style={local_styles.deviceSelectionLocation}>{device.location}</Text>
       </View>
-      {newAutomation.devices.some(d => d.id === device.id) && (
-        <Check size={20} color="#4CAF50" />
-      )}
     </TouchableOpacity>
   );
 
@@ -696,13 +814,42 @@ const loadAutomations = async (uid: string) => {
       visible={addModalVisible}
       animationType="slide"
       transparent={true}
-      onRequestClose={() => setAddModalVisible(false)}
+      onRequestClose={() => {
+        setAddModalVisible(false);
+        setEditingAutomation(null);
+      }}
     >
       <View style={local_styles.modalOverlay}>
         <View style={local_styles.addModalContainer}>
           <View style={local_styles.modalHeader}>
-            <Text style={local_styles.modalTitle}>New Automation</Text>
-            <TouchableOpacity onPress={() => setAddModalVisible(false)}>
+            <Text style={local_styles.modalTitle}>
+              {editingAutomation ? 'Edit Automation' : 'Create New Automation'}
+            </Text>
+            <TouchableOpacity 
+              onPress={() => {
+                setAddModalVisible(false);
+                setEditingAutomation(null);
+                
+                // Reset form when canceling
+                setNewAutomation({
+                  name: '',
+                  trigger: '',
+                  timeInput: '12:00',
+                  timePeriod: 'AM',
+                  triggerValue: '',
+                  temperatureComparison: 'Above',
+                  temperatureValue: '',
+                  temperatureComparisonType: 'Above',
+                  triggerDevice: null,
+                  devices: [],
+                  selectedDevices: [],
+                  actions: '',
+                  actionValue: '',
+                  frequency: 'Daily',
+                  notifyBefore: false,
+                });
+              }}
+            >
               <X size={24} color="#666" />
             </TouchableOpacity>
           </View>
@@ -813,13 +960,13 @@ const loadAutomations = async (uid: string) => {
                       key={option.value}
                       style={[
                         local_styles.optionButton,
-                        newAutomation.temperatureComparison === option.value && local_styles.optionButtonSelected
+                        newAutomation.temperatureComparisonType === option.value && local_styles.optionButtonSelected
                       ]}
-                      onPress={() => setNewAutomation({ ...newAutomation, temperatureComparison: option.value })}
+                      onPress={() => setNewAutomation({ ...newAutomation, temperatureComparisonType: option.value })}
                     >
                       <Text style={[
                         local_styles.optionButtonText,
-                        newAutomation.temperatureComparison === option.value && local_styles.optionButtonTextSelected
+                        newAutomation.temperatureComparisonType === option.value && local_styles.optionButtonTextSelected
                       ]}>
                         {option.label}
                       </Text>
@@ -844,7 +991,7 @@ const loadAutomations = async (uid: string) => {
                       key={device.id}
                       style={[
                         local_styles.deviceSelectionItem,
-                        newAutomation.triggerDevice?.id === device.id && local_styles.deviceSelectionItemSelected
+                        newAutomation.triggerDevice?.id === device.id && local_styles.selectedDevice
                       ]}
                       onPress={() => setNewAutomation({ ...newAutomation, triggerDevice: device })}
                     >
@@ -1020,10 +1167,19 @@ const loadAutomations = async (uid: string) => {
                   {formatTriggerText(automation.trigger, automation.triggerTime, automation.triggerValue, automation.triggerDevice)}
               </Text>
             </View>
+            <TouchableOpacity
+              onPress={(e) => {
+                // Stop the event from propagating to the parent
+                e.stopPropagation();
+                toggleAutomation(automation.id);
+              }}
+              activeOpacity={1}
+            >
             <Switch
                 value={automation.isActive}
                 onValueChange={() => toggleAutomation(automation.id)}
             />
+            </TouchableOpacity>
           </View>
           
           <View style={local_styles.deviceList}>
@@ -1119,8 +1275,8 @@ const loadAutomations = async (uid: string) => {
               <Text style={local_styles.modalTitle}>{selectedAutomation.name}</Text>
               <TouchableOpacity onPress={() => setDetailsModalVisible(false)}>
                 <X size={24} color="#666" />
-        </TouchableOpacity>
-      </View>
+              </TouchableOpacity>
+            </View>
             
             <ScrollView style={local_styles.addModalContent}>
               <View style={local_styles.detailRow}>
@@ -1204,8 +1360,8 @@ const loadAutomations = async (uid: string) => {
                 <TouchableOpacity
                   style={[local_styles.detailButton, local_styles.editDetailButton]}
                   onPress={() => {
-                    // Future implementation for editing automations
-                    Alert.alert("Coming Soon", "Editing automations will be available in a future update.");
+                    console.log("Edit button clicked for automation:", selectedAutomation.id);
+                    handleEditAutomation(selectedAutomation);
                   }}
                 >
                   <Text style={local_styles.editDetailButtonText}>Edit</Text>
@@ -1675,7 +1831,7 @@ const local_styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
 
-  deviceSelectionItemSelected: {
+  selectedDevice: {
     backgroundColor: '#f0f8ff',
     borderColor: '#001322',
   },
