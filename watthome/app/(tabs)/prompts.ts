@@ -21,6 +21,13 @@ Your personality:
 - Patient with technical questions
 - Respond to casual greetings naturally
 
+When you receive user data:
+- Use this data to provide personalized responses
+- Refer to the user's specific devices by name
+- Make recommendations based on their actual energy usage
+- Mention their automations when relevant
+- Prioritize the energy-saving recommendations provided
+
 When responding:
 - Keep answers concise but complete
 - Don't overwhelm with technical jargon
@@ -81,7 +88,7 @@ Additional help:
 - Faqs available in Settings > Help & Support
 - Customer support: support@watthome.com or in-app chat
 
-Question from user: `;
+`;
 
 /**
  * Product/Device information prompt
@@ -112,7 +119,7 @@ Energy monitoring:
 - Set energy usage alerts
 - View historical consumption data
 
-Question about devices: `;
+`;
 
 /**
  * Troubleshooting prompt for device or app issues
@@ -144,7 +151,7 @@ Additional troubleshooting:
 - Check WattHome status page for system-wide issues
 - For device-specific problems, also consult manufacturer support
 
-Problem description: `;
+`;
 
 /**
  * App process guidance prompt
@@ -159,6 +166,17 @@ Adding and managing devices:
 2. Tap "+" to add a new device
 3. Select the device category and follow connection instructions
 4. Once connected, you can rename devices and assign to rooms
+
+Using Device Groups:
+1. Device Groups are managed locally in the app, not in our cloud database
+2. To view which group a device belongs to, go to the Device Groups tab in the Devices page
+3. Each group is displayed with its member devices
+4. To add a device to a group, toggle Edit mode by pressing the Edit button
+5. Then you can create new groups or add devices to existing groups by tapping "+"
+6. Select the devices you want to group, and choose a name for the device group
+7. You can then confirm adding the device group by clicking the "Add Group" or they can "cancel"
+8. Note: When users ask about specific device groups, direct them to check the Devices tab instead of providing potentially incorrect information
+9. Note: User cannot add devices to an existing device group
 
 Using the Energy dashboard:
 1. Tap the Energy tab to see overall consumption
@@ -180,7 +198,7 @@ Managing users and access:
 3. Select which rooms and devices they can access
 4. Set user permission level (admin, standard, restricted)
 
-Question about using the app: `;
+`;
 
 export const turnOnDevicePrompt = `
 ${baseContext}
@@ -199,7 +217,7 @@ Additional tips:
 - For devices with adjustable settings (e.g., brightness, temperature), you can control these settings after turning the device on.
 - If the device still doesn't turn on, check the manufacturer's app for troubleshooting steps.
 
-Problem description: `;
+`;
 
 /**
  * General conversation prompt for casual interactions
@@ -213,7 +231,25 @@ If the user asks a specific question about smart homes or energy usage that you 
 
 Remember that you're representing WattHome, so maintain a helpful and positive tone, but you can be personable and conversational.
 
-User message: `;
+`;
+
+/**
+ * Interface to define Firebase response structures for TypeScript
+ */
+export interface ChatbotFirebaseResponse {
+  success: boolean;
+  devices?: any[];
+  count?: number;
+  message?: string;
+  error?: string;
+  totalEnergy?: number;
+  deviceEnergies?: any[];
+  energyByType?: {type: string, energy: number}[];
+  automations?: any[];
+  recommendations?: string[];
+  highEnergyDevices?: any[];
+  averageEnergy?: number;
+}
 
 /**
  * Function to dynamically create device-specific prompts
@@ -232,7 +268,7 @@ Some things users might want to know about ${deviceType} devices:
 - Compatible brands and models
 - Common troubleshooting issues
 
-Question about ${deviceType}: `;
+`;
 };
 
 /**
@@ -241,8 +277,16 @@ Question about ${deviceType}: `;
 export const determineQuestionType = (message: string): string => {
   const messageLower = message.toLowerCase();
   
+  // Device group detection
+  if (messageLower.includes('device group') || 
+      messageLower.includes('group of devices') ||
+      messageLower.includes('which group') ||
+      (messageLower.includes('group') && messageLower.includes('belong'))) {
+    return 'app_process';  // Direct to app process which includes device group instructions
+  }
+  
   // FAQ detection
-  if (messageLower.includes('password') || 
+  else if (messageLower.includes('password') || 
       messageLower.includes('login') || 
       messageLower.includes('account') || 
       messageLower.includes('sign') ||
@@ -281,6 +325,17 @@ export const determineQuestionType = (message: string): string => {
            messageLower.includes('bulb') ||
            messageLower.includes('hub')) {
     return 'product_info';
+  }
+  
+  // Energy-related questions
+  else if (messageLower.includes('energy') ||
+           messageLower.includes('usage') ||
+           messageLower.includes('consumption') ||
+           messageLower.includes('watt') ||
+           messageLower.includes('power') ||
+           messageLower.includes('saving') ||
+           messageLower.includes('efficient')) {
+    return 'product_info';  // Using product info for energy questions too
   }
   
   // Conversational fallback

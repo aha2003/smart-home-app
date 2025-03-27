@@ -10,16 +10,31 @@ import {
     Platform,
     KeyboardAvoidingView,
     ScrollView,
+    ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { GoogleGenerativeAI } from '@google/generative-ai';
-
-import { faqPrompt, productInfoPrompt, troubleshootingPrompt, conversationalPrompt, createDeviceTypePrompt, determineQuestionType, appProcessPrompt } from './prompts';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { faqPrompt, productInfoPrompt, troubleshootingPrompt, conversationalPrompt, createDeviceTypePrompt, determineQuestionType, appProcessPrompt, ChatbotFirebaseResponse } from './prompts';
+import { 
+    getChatbotDeviceData, 
+    getChatbotEnergyData, 
+    getChatbotAutomationData,
+    getEnergySavingRecommendations
+} from '../../backend/chatbotService';
 
 interface Message {
     id: string;
     text: string;
     sender: 'user' | 'bot';
+}
+
+interface UserData {
+    userId: string | null;
+    devices: any[] | null;
+    energy: ChatbotFirebaseResponse | null;
+    automations: any[] | null;
+    recommendations: string[] | null;
 }
 
 const Chatbot = () => {
@@ -29,17 +44,120 @@ const Chatbot = () => {
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [availableModels, setAvailableModels] = useState(null);
+    const [userData, setUserData] = useState<UserData>({
+        userId: null,
+        devices: null,
+        energy: null,
+        automations: null,
+        recommendations: null
+    });
+    const [dataLoading, setDataLoading] = useState(false);
 
     const API_KEY = 'AIzaSyDvIqoJJ1eEBomjDsw5SvfnhRkm6XLyO5E'; // Replace with your actual API key - DANGER!
     const genAI = new GoogleGenerativeAI(API_KEY);
+    const auth = getAuth();
+
+    // Listen for authentication state changes
+    useEffect(() => {
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
+            if (user) {
+                console.log("User is authenticated:", user.uid);
+                setUserData(prev => ({ ...prev, userId: user.uid }));
+                // Don't load data immediately, only when the chatbot is opened
+            } else {
+                console.log("User is not authenticated");
+                setUserData({
+                    userId: null,
+                    devices: null,
+                    energy: null,
+                    automations: null,
+                    recommendations: null
+                });
+            }
+        });
+
+        return () => unsubscribe();
+    }, []);
+
+    // Load user data when chatbot becomes visible and user is authenticated
+    useEffect(() => {
+        const loadUserData = async () => {
+            if (visible && userData.userId) {
+                try {
+                    setDataLoading(true);
+                    console.log("Loading user data for chatbot...");
+                    
+                    // Fetch data in parallel
+                    const [deviceData, energyData, automationData, recommendationsData] = await Promise.all([
+                        getChatbotDeviceData(userData.userId),
+                        getChatbotEnergyData(userData.userId),
+                        getChatbotAutomationData(userData.userId),
+                        getEnergySavingRecommendations(userData.userId)
+                    ]) as [ChatbotFirebaseResponse, ChatbotFirebaseResponse, ChatbotFirebaseResponse, ChatbotFirebaseResponse];
+                    
+                    if (deviceData.success && deviceData.count !== undefined) {
+                        console.log("Device data loaded:", deviceData.count, "devices");
+                    }
+                    
+                    setUserData(prev => ({
+                        ...prev,
+                        devices: deviceData.success && deviceData.devices ? deviceData.devices : [],
+                        energy: energyData.success ? energyData : null,
+                        automations: automationData.success && automationData.automations ? automationData.automations : [],
+                        recommendations: recommendationsData.success && recommendationsData.recommendations ? recommendationsData.recommendations : []
+                    }));
+                    
+                    // Automatically welcome the user with their data summary when opening
+                    if (deviceData.success && messages.length === 0 && deviceData.devices) {
+                        const deviceCount = deviceData.devices.length;
+                        const automationCount = automationData.success && automationData.automations ? automationData.automations.length : 0;
+                        
+                        let welcomeMessage = `Welcome back! `;
+                        
+                        if (deviceCount > 0) {
+                            welcomeMessage += `You have ${deviceCount} device${deviceCount !== 1 ? 's' : ''} connected. `;
+                            
+                            // Add energy info if available
+                            if (energyData.success && energyData.totalEnergy && energyData.totalEnergy > 0) {
+                                welcomeMessage += `Your total energy usage is ${Math.round(energyData.totalEnergy)} Wh. `;
+                            }
+                            
+                            // Add automation info if available
+                            if (automationCount > 0) {
+                                welcomeMessage += `You have ${automationCount} automation${automationCount !== 1 ? 's' : ''} set up. `;
+                            }
+                            
+                            welcomeMessage += `How can I help you today?`;
+                        } else {
+                            welcomeMessage += `You don't have any devices set up yet. Would you like help adding your first device?`;
+                        }
+                        
+                        setMessages([{
+                            id: Date.now().toString(),
+                            text: welcomeMessage,
+                            sender: 'bot'
+                        }]);
+                    }
+                } catch (error) {
+                    console.error("Error loading user data for chatbot:", error);
+                } finally {
+                    setDataLoading(false);
+                }
+            }
+        };
+
+        loadUserData();
+    }, [visible, userData.userId]);
 
     useEffect(() => {
         const listModels = async () => {
             try {
-              const models = await genAI.listModels();
+                // The GoogleGenerativeAI API might have changed, we'll skip trying to list models
+                // and just continue with the chatbot functionality
+                console.log("Initializing chatbot model...");
                 // setAvailableModels(models);
             } catch (error) {
-                console.error("Error listing models:", error);
+                console.error("Error initializing chatbot:", error);
             }
         };
 
@@ -63,12 +181,71 @@ const Chatbot = () => {
         }
     };
 
+    // Create a context object with user data for enhanced prompts
+    const createUserContext = () => {
+        let context = "";
+        
+        // Add device information if available
+        if (userData.devices && userData.devices.length > 0) {
+            context += "\nUSER'S DEVICES:\n";
+            userData.devices.forEach((device, index) => {
+                context += `${index + 1}. ${device.name} (${device.type}) - ${device.isOn ? 'ON' : 'OFF'}\n`;
+                context += `   Location: ${device.location}\n`;
+                context += `   Energy: ${device.totalEnergy} Wh\n`;
+                
+                // Add device-specific settings if they exist
+                if (device.settings && Object.keys(device.settings).length > 0) {
+                    context += `   Settings: ${JSON.stringify(device.settings)}\n`;
+                }
+            });
+        }
+        
+        // Add energy information if available
+        if (userData.energy && userData.energy.totalEnergy !== undefined) {
+            context += "\nUSER'S ENERGY USAGE:\n";
+            context += `Total energy: ${userData.energy.totalEnergy} Wh\n`;
+            
+            if (userData.energy.energyByType && userData.energy.energyByType.length > 0) {
+                context += "Energy by device type:\n";
+                userData.energy.energyByType.forEach((item: {type: string, energy: number}) => {
+                    context += `- ${item.type}: ${item.energy} Wh\n`;
+                });
+            }
+        }
+        
+        // Add automation information if available
+        if (userData.automations && userData.automations.length > 0) {
+            context += "\nUSER'S AUTOMATIONS:\n";
+            userData.automations.forEach((automation, index) => {
+                context += `${index + 1}. ${automation.name}\n`;
+                context += `   Trigger: ${automation.trigger}\n`;
+                context += `   Action: ${automation.actions}\n`;
+                context += `   Status: ${automation.isActive ? 'Active' : 'Inactive'}\n`;
+                
+                if (automation.devices && automation.devices.length > 0) {
+                    const deviceNames = automation.devices.map((d: {name: string}) => d.name).join(', ');
+                    context += `   Devices: ${deviceNames}\n`;
+                }
+            });
+        }
+        
+        // Add energy-saving recommendations if available
+        if (userData.recommendations && userData.recommendations.length > 0) {
+            context += "\nRECOMMENDATIONS FOR USER:\n";
+            userData.recommendations.forEach((rec, index) => {
+                context += `${index + 1}. ${rec}\n`;
+            });
+        }
+        
+        return context;
+    };
+
     const sendMessage = async () => {
         const trimmedInput = input.trim();
 
         if (!trimmedInput || isLoading) return;
 
-        const userMessage = {
+        const userMessage: Message = {
             id: Date.now().toString(),
             text: trimmedInput,
             sender: 'user',
@@ -82,30 +259,33 @@ const Chatbot = () => {
             const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
             const questionType = determineQuestionType(trimmedInput);
             let fullPrompt = '';
+            
+            // Get user context for more personalized responses
+            const userContext = createUserContext();
 
             switch(questionType) {
               case 'faq':
-                  fullPrompt = `${faqPrompt}${trimmedInput}`;
+                  fullPrompt = `${faqPrompt}${userContext}\n\nUSER QUESTION: ${trimmedInput}`;
                   break;
               case 'product_info':
                   // Check if we need a more specific device prompt
                   if (trimmedInput.toLowerCase().includes('thermostat')) {
-                      fullPrompt = `${createDeviceTypePrompt('thermostat')}${trimmedInput}`;
+                      fullPrompt = `${createDeviceTypePrompt('thermostat')}${userContext}\n\nUSER QUESTION: ${trimmedInput}`;
                   } else if (trimmedInput.toLowerCase().includes('light')) {
-                      fullPrompt = `${createDeviceTypePrompt('lighting')}${trimmedInput}`;
+                      fullPrompt = `${createDeviceTypePrompt('lighting')}${userContext}\n\nUSER QUESTION: ${trimmedInput}`;
                   } else {
-                      fullPrompt = `${productInfoPrompt}${trimmedInput}`;
+                      fullPrompt = `${productInfoPrompt}${userContext}\n\nUSER QUESTION: ${trimmedInput}`;
                   }
                   break;
               case 'troubleshooting':
-                  fullPrompt = `${troubleshootingPrompt}${trimmedInput}`;
+                  fullPrompt = `${troubleshootingPrompt}${userContext}\n\nUSER QUESTION: ${trimmedInput}`;
                   break;
               case 'app_process':
-                  fullPrompt = `${appProcessPrompt}${trimmedInput}`;
+                  fullPrompt = `${appProcessPrompt}${userContext}\n\nUSER QUESTION: ${trimmedInput}`;
                   break;
               default:
                   // Handle casual conversation
-                  fullPrompt = `${conversationalPrompt}${trimmedInput}`;
+                  fullPrompt = `${conversationalPrompt}${userContext}\n\nUSER QUESTION: ${trimmedInput}`;
           }
 
             const result = await model.generateContent(fullPrompt);
@@ -120,14 +300,13 @@ const Chatbot = () => {
                 throw new Error("Empty response from Gemini API.");
             }
 
-            setMessages((prev) => [
-                ...prev,
-                {
-                    id: Date.now().toString(),
-                    text,
-                    sender: 'bot',
-                },
-            ]);
+            const botMessage: Message = {
+                id: Date.now().toString(),
+                text,
+                sender: 'bot',
+            };
+
+            setMessages((prev) => [...prev, botMessage]);
         } catch (error) {
             console.error('Error fetching response:', error);
             console.error("Error Details:", JSON.stringify(error, null, 2));
@@ -138,36 +317,17 @@ const Chatbot = () => {
                 errorMessage = `Sorry, I encountered an error: ${error.message}`;
             }
 
-            setMessages((prev) => [
-                ...prev,
-                {
-                    id: Date.now().toString(),
-                    text: errorMessage,
-                    sender: 'bot',
-                },
-            ]);
+            const errorBotMessage: Message = {
+                id: Date.now().toString(),
+                text: errorMessage,
+                sender: 'bot',
+            };
+
+            setMessages((prev) => [...prev, errorBotMessage]);
         } finally {
             setIsLoading(false);
         }
     };
-
-    // const determineQuestionType = (message: string): string => {
-    //     // Basic keyword matching (improve this later with a machine learning classifier)
-    //     const messageLower = message.toLowerCase();
-
-    //     if (messageLower.includes('password') || messageLower.includes('reset') || messageLower.includes('login')) {
-    //       return 'faq';
-    //     } else if (messageLower.includes('thermostat') || messageLower.includes('lightbulb') || messageLower.includes('price')) {
-    //       return 'product_info';
-    //     } else if (messageLower.includes('connect') || messageLower.includes('not working') || messageLower.includes('error')) {
-    //       return 'troubleshooting';
-    //     }
-    //      else if (messageLower.includes('add') || messageLower.includes('device') ) {
-    //       return 'app_process';
-    //     }
-
-    //     return 'default'; // Or a generic "I don't understand" prompt
-    //   };
 
     return (
         <>
@@ -197,6 +357,13 @@ const Chatbot = () => {
                             </TouchableOpacity>
                         </View>
 
+                        {dataLoading && (
+                            <View style={styles.loadingContainer}>
+                                <ActivityIndicator size="large" color="#001322" />
+                                <Text style={styles.loadingText}>Loading your data...</Text>
+                            </View>
+                        )}
+
                         <FlatList
                             data={messages}
                             keyExtractor={(item) => item.id}
@@ -220,8 +387,16 @@ const Chatbot = () => {
                                 onChangeText={setInput}
                                 multiline={Platform.OS === 'ios'}
                             />
-                            <TouchableOpacity style={styles.sendButton} onPress={sendMessage}>
-                                <Ionicons name="send" size={24} color="#001322" />
+                            <TouchableOpacity 
+                                style={styles.sendButton} 
+                                onPress={sendMessage}
+                                disabled={isLoading}
+                            >
+                                {isLoading ? (
+                                    <ActivityIndicator size="small" color="#001322" />
+                                ) : (
+                                    <Ionicons name="send" size={24} color="#001322" />
+                                )}
                             </TouchableOpacity>
                         </View>
 
@@ -245,25 +420,7 @@ const Chatbot = () => {
 };
 
 const styles = StyleSheet.create({
-    // ... (rest of your styles)
-
-    // floatingButton: {
-    //   position: "absolute",
-    //   bottom: 23,
-    //   backgroundColor: "#001322",
-    //   width: 60,
-    //   height: 60,
-    //   borderRadius: 30,
-    //   borderWidth: 1,
-    //   borderColor: "#ccc",
-    //   justifyContent: "center",
-    //   alignItems: "center",
-    //   elevation: 5,
-    //   right: Platform.OS === 'ios' ? 14 : 20,
-    //   marginBottom: Platform.OS === 'ios' ? 58 : 0,
-    // },
     floatingButton: {
-      // position: "fixed", // Change to fixed for web
       position: Platform.OS === 'web' ? "fixed" : "absolute",
       bottom: 23,
       backgroundColor: "#001322",
@@ -279,9 +436,7 @@ const styles = StyleSheet.create({
       marginBottom: Platform.OS === 'ios' ? 58 : 0,
       zIndex: 2000, // Make sure it's above everything else
     },
-    // Update chatContainer style:
     chatContainer: {
-      // position: "fixed", // Change to fixed for web
       position: Platform.OS === 'web' ? "fixed" : "absolute",
       right: 0,
       top: 0,
@@ -299,23 +454,6 @@ const styles = StyleSheet.create({
       shadowRadius: 25,
       zIndex: 2000, // Make sure it's above everything else
     },
-    // chatContainer: {
-    //   position: "absolute",
-    //   right: 0,
-    //   top: 0,
-    //   bottom: Platform.OS === 'ios' ? 80 : 0,
-    //   width: Platform.OS === 'ios' ? "80%" : "30%",
-    //   backgroundColor: "white",
-    //   borderLeftWidth: 1,
-    //   borderColor: "#ccc",
-    //   padding: 15,
-    //   paddingLeft: 20,
-    //   paddingBottom: Platform.OS === 'ios' ? 20 : 20,
-    //   shadowColor: "#000",
-    //   shadowOffset: { width: -4, height: 0 },
-    //   shadowOpacity: 0.2,
-    //   shadowRadius: 25,
-    // },
     header: {
       flexDirection: "row",
       justifyContent: "space-between",
@@ -363,7 +501,7 @@ const styles = StyleSheet.create({
       borderRadius: 5,
     },
     sendButton: {
-      //padding: 10,
+      padding: 10,
       marginLeft: 8,
     },   
     modelListContainer: {
@@ -387,7 +525,6 @@ const styles = StyleSheet.create({
     modelListItemName: {
         fontWeight: '500',
     },
-
     keyboardAvoidingContainer: {
       position: "absolute",
       right: 0,
@@ -396,29 +533,29 @@ const styles = StyleSheet.create({
       width: "100%",
       height: "100%",
       zIndex: 1000,
-  },
-  
-  
-messageList: {
-    flex: 1,
-},
-messagesContentContainer: {
-    paddingBottom: 10,
-    flexGrow: 1,
-},
-overlay: {
-//   // ...StyleSheet.absoluteFillObject,
-//   // backgroundColor: 'rgba(0,0,0,0.5)', 
-//   position: 'absolute',
-//   top: 0,
-//   bottom: 100,
-//   right: Platform.OS === 'ios' ? "80%" : "30%", // match chatContainer width
-//   left: 0,
-//   backgroundColor: 'rgba(0,0,0,0.5)',
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.3)', 
-    zIndex: 900,
-}
+    },
+    messageList: {
+        flex: 1,
+    },
+    messagesContentContainer: {
+        paddingBottom: 10,
+        flexGrow: 1,
+    },
+    overlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0,0,0,0.3)', 
+        zIndex: 900,
+    },
+    loadingContainer: {
+        padding: 10,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    loadingText: {
+        marginTop: 5,
+        fontSize: 14,
+        color: '#001322',
+    }
 });
 
 export default Chatbot;
