@@ -1181,6 +1181,23 @@ const loadDeviceGroups = async () => {
   }
   , []);
 
+  // Add this useEffect to automatically load devices when the component mounts
+  useEffect(() => {
+    // Only trigger automatic load if userId is available
+    if (userId) {
+      console.log("Automatically loading devices on page mount for user:", userId);
+      // Set isLoading to true to show loading indicator
+      setIsLoading(true);
+      // Call loadDeviceStates to fetch devices from Firestore
+      loadDeviceStates().then(() => {
+        // After loadDeviceStates completes, also load device settings
+        loadDeviceSettings();
+      }).catch(error => {
+        console.error("Error in automatic device loading:", error);
+      });
+    }
+  }, [userId]); // Only re-run when userId changes
+
   return (
     <View style={[styles.dev_container, isDesktop ? styles.desktopContainer : styles.mobileContainer]}>
 
